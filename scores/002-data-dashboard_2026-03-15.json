@@ -1,0 +1,50 @@
+[
+  {
+    "spec": "002-data-dashboard",
+    "model": "sonnet",
+    "timestamp": "2026-03-15T10:11:36.812Z",
+    "compiles": true,
+    "weighted_score": 78,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "opus",
+    "timestamp": "2026-03-15T10:17:53.355Z",
+    "compiles": true,
+    "weighted_score": 79,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "haiku",
+    "timestamp": "2026-03-15T10:22:32.825Z",
+    "compiles": true,
+    "weighted_score": 53,
+    "categories": {
+      "state_architecture": 2,
+      "effect_hygiene": 2,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 2,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  }
+]
