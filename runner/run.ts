@@ -100,7 +100,7 @@ function setupWorkDir(specId: string, model: string): string {
 
   // Install dependencies
   log(`  Installing dependencies in ${workDir}...`);
-  nodeExecFileSync("npm", ["install", "--silent"], { cwd: workDir, timeout: 120_000 });
+  nodeExecFileSync("pnpm", ["install", "--silent"], { cwd: workDir, timeout: 120_000 });
 
   return workDir;
 }
