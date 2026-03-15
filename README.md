@@ -130,6 +130,10 @@ Each spec has its own rubric weight profile, emphasizing different React skills.
 
 See [`evaluation/rubric.md`](evaluation/rubric.md) for the full scoring rubric and [`evaluation/anti-patterns.md`](evaluation/anti-patterns.md) for the catalog of detected anti-patterns.
 
+## Contributing
+
+See [`docs/writing-specs.md`](docs/writing-specs.md) for a guide on writing new specs and evaluation criteria.
+
 ## Key Design Decision: Why `useEffect` Matters So Much
 
 The single strongest signal of React proficiency is how a developer uses `useEffect`. The most common mistake — and the one that most clearly reveals a lack of understanding of React's mental model — is using `useEffect` to synchronize derived state:
