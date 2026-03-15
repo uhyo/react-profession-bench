@@ -1,0 +1,50 @@
+[
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "sonnet",
+    "timestamp": "2026-03-15T13:36:54.190Z",
+    "compiles": true,
+    "weighted_score": 58,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "opus",
+    "timestamp": "2026-03-15T13:44:17.200Z",
+    "compiles": true,
+    "weighted_score": 61,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "haiku",
+    "timestamp": "2026-03-15T13:48:14.744Z",
+    "compiles": true,
+    "weighted_score": 51,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 2,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  }
+]
