@@ -51,6 +51,29 @@ Final Score = (Static Score × 0.4) + (LLM Judge Score × 0.6)
 
 The LLM judge runs 3 times; the median is used to reduce variance.
 
+## Running the Benchmark
+
+Prerequisites: [Node.js](https://nodejs.org/) 22+ and [Claude Code](https://claude.ai/claude-code) CLI.
+
+```bash
+# Run all specs against all default models (sonnet, opus, haiku)
+node runner/run.ts
+
+# Run a specific spec against a specific model
+node runner/run.ts --spec 001-event-registration-form --model sonnet
+
+# Run multiple specs and models
+node runner/run.ts --spec 001-event-registration-form --spec 002-data-dashboard --model sonnet --model opus
+
+# Preview what would run without executing
+node runner/run.ts --dry-run
+```
+
+Results are written to `results/` (gitignored), including:
+- Per-run working directories with the implemented source code
+- Per-run `evaluation-result.json` with detailed scores
+- A `summary_*.json` file with the scorecard across all runs
+
 ## Project Structure
 
 ```
@@ -98,8 +121,10 @@ react-profession-bench/
 │   │   └── expected-signals.json
 │   └── 006-notification-activity-feed/
 │       └── expected-signals.json
-└── runner/                         # Orchestration engine (future)
-    └── ...
+├── runner/                         # Orchestration engine
+│   └── run.ts                     # Main runner script
+└── docs/
+    └── writing-specs.md           # Guide for adding new specs
 ```
 
 ## Specs
