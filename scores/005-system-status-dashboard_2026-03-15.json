@@ -1,0 +1,50 @@
+[
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "sonnet",
+    "timestamp": "2026-03-15T12:55:45.810Z",
+    "compiles": true,
+    "weighted_score": 50,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 2,
+      "component_design": 2,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "opus",
+    "timestamp": "2026-03-15T13:00:16.583Z",
+    "compiles": true,
+    "weighted_score": 62,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "haiku",
+    "timestamp": "2026-03-15T13:03:57.616Z",
+    "compiles": true,
+    "weighted_score": 58,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 2,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  }
+]
