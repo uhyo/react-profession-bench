@@ -1,0 +1,140 @@
+{
+  "spec_id": "003",
+  "spec_name": "Accessible Interactive Quiz Builder",
+  "rubric_weights": {
+    "state_architecture": 15,
+    "effect_hygiene": 10,
+    "component_design": 15,
+    "typescript_quality": 25,
+    "performance_awareness": 5,
+    "accessibility_semantics": 30
+  },
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "questionCount",
+      "trigger": "Auto-numbered questions starting from 1",
+      "correct": "Use array index + 1 during render",
+      "anti_pattern": "Store a separate count state"
+    },
+    {
+      "name": "isQuizValid / canSubmitQuiz",
+      "trigger": "Requirement 16: Submit disabled until all questions answered",
+      "correct": "Derived from answers state — check all questions have an answer",
+      "anti_pattern": "Stored as useState and synced via useEffect"
+    },
+    {
+      "name": "score",
+      "trigger": "Requirement 17: score displayed after submission",
+      "correct": "Computed from answers + questions when submitted flag is true",
+      "anti_pattern": "Stored as separate state synced on submission"
+    },
+    {
+      "name": "previewData",
+      "trigger": "Requirement 14: live preview panel shows quiz as student sees it",
+      "correct": "Rendered directly from questions state — no copy needed",
+      "anti_pattern": "Separate state for preview, synced via useEffect"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "Focus management after adding a question",
+      "expected_pattern": "useEffect or useRef to focus the new question's text input after it appears"
+    },
+    {
+      "purpose": "Focus management after moving a question",
+      "expected_pattern": "Move focus to follow the moved question's controls"
+    },
+    {
+      "purpose": "Focus management after deleting a question",
+      "expected_pattern": "Move focus to the previous question or the Add Question button"
+    }
+  ],
+  "accessibility_signals": [
+    {
+      "signal": "Tab panel pattern for Edit/Preview modes",
+      "correct": "role='tablist' with role='tab' children, role='tabpanel', aria-selected on active tab, keyboard arrow navigation between tabs",
+      "anti_pattern": "Styled buttons or divs with no ARIA roles or keyboard navigation"
+    },
+    {
+      "signal": "Fieldset/legend for question groups",
+      "correct": "Each question wrapped in <fieldset> with <legend> containing the question number/text",
+      "anti_pattern": "Plain <div> wrappers with no semantic grouping"
+    },
+    {
+      "signal": "Focus management after reorder",
+      "correct": "After moving a question, focus follows the moved item (e.g., focus the Move Up/Down button of the moved question at its new position)",
+      "anti_pattern": "Focus stays at the old DOM position, now pointing to a different question"
+    },
+    {
+      "signal": "Focus management after add/remove",
+      "correct": "Adding a question focuses the new question's text input. Removing a question focuses the previous question or the Add button.",
+      "anti_pattern": "No focus management — focus is lost or stays on a now-nonexistent element"
+    },
+    {
+      "signal": "Confirmation dialog accessibility",
+      "correct": "<dialog> element or role='dialog' with aria-modal='true', aria-labelledby, focus trapped inside, focus restored on close",
+      "anti_pattern": "Styled div overlay with no ARIA, no focus trapping"
+    },
+    {
+      "signal": "Live region for status announcements",
+      "correct": "aria-live='polite' visually hidden region announcing meaningful changes (e.g., 'Question moved to position 2', 'Question deleted')",
+      "anti_pattern": "No announcements — screen reader users have no feedback for reorder/add/delete actions"
+    },
+    {
+      "signal": "Buttons have accessible labels",
+      "correct": "Move Up/Move Down/Delete buttons have aria-label including the question context (e.g., 'Move question 3 up')",
+      "anti_pattern": "Ambiguous buttons with no context (just 'Up', 'Down', 'Delete')"
+    }
+  ],
+  "typescript_signals": [
+    {
+      "signal": "Discriminated union for question types",
+      "correct": "Question = SingleChoiceQuestion | MultipleChoiceQuestion | TrueFalseQuestion with type field as discriminant, narrowing via switch/if",
+      "anti_pattern": "Single interface with optional fields (options?: string[], correctIndex?: number, correctIndices?: number[], correctAnswer?: boolean)"
+    },
+    {
+      "signal": "Type-specific editor components",
+      "correct": "Separate components for each question type, each receiving the narrowed type as props (e.g., SingleChoiceEditor takes SingleChoiceQuestion)",
+      "anti_pattern": "One editor component receiving Question and casting/checking type internally everywhere"
+    },
+    {
+      "signal": "Exhaustive handling of question types",
+      "correct": "switch (question.type) with all cases and a default: never check for exhaustiveness",
+      "anti_pattern": "if/else chains that could silently miss a new question type"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 7,
+    "maximum_reasonable": 20,
+    "expected_components": [
+      "App (root)",
+      "TabBar (Edit/Preview tabs)",
+      "EditMode (editor + live preview layout)",
+      "QuestionEditor (single question editing)",
+      "SingleChoiceEditor (single-choice-specific options)",
+      "MultipleChoiceEditor (multiple-choice-specific options)",
+      "TrueFalseEditor (true/false-specific options)",
+      "QuizPreview (student view of quiz)",
+      "QuestionPreview (single question in student view)",
+      "ConfirmDialog (delete confirmation)",
+      "LivePreview (right panel in edit mode)"
+    ],
+    "optional_but_good": [
+      "OptionEditor (reusable option row with input + remove button)",
+      "ScoreDisplay (score after submission)",
+      "StatusAnnouncer (visually hidden aria-live region)"
+    ]
+  },
+  "event_handler_patterns": [
+    {
+      "interaction": "Changing question type resets options (Requirement 9)",
+      "correct": "onChange handler that creates a new question object with the new type and default options",
+      "anti_pattern": "useEffect watching question.type to reset options"
+    },
+    {
+      "interaction": "Adding/removing answer options (Requirement 5)",
+      "correct": "onClick handler that immutably updates the options array",
+      "anti_pattern": "Mutating the array or syncing via useEffect"
+    }
+  ]
+}

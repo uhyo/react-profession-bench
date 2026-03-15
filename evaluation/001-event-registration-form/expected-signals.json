@@ -1,6 +1,14 @@
 {
   "spec_id": "001",
   "spec_name": "Event Registration Form",
+  "rubric_weights": {
+    "state_architecture": 25,
+    "effect_hygiene": 20,
+    "component_design": 20,
+    "typescript_quality": 15,
+    "performance_awareness": 10,
+    "accessibility_semantics": 10
+  },
   "derived_values_that_must_not_be_state": [
     {
       "name": "wordCount",

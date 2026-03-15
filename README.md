@@ -57,9 +57,15 @@ The LLM judge runs 3 times; the median is used to reduce variance.
 react-profession-bench/
 ├── README.md
 ├── specs/                          # Benchmark specifications (given to implementer)
-│   └── 001-event-registration-form/
-│       ├── spec.md                 # Behavioral spec
-│       └── data-model.ts           # TypeScript types
+│   ├── 001-event-registration-form/
+│   │   ├── spec.md                 # Behavioral spec
+│   │   └── data-model.ts           # TypeScript types
+│   ├── 002-data-dashboard/
+│   │   ├── spec.md
+│   │   └── data-model.ts           # Types + static data (200 contacts, 500 messages)
+│   └── 003-quiz-builder/
+│       ├── spec.md
+│       └── data-model.ts           # Discriminated union types for question types
 ├── scaffold/                       # Template project given to the LLM
 │   ├── package.json
 │   ├── tsconfig.json
@@ -69,10 +75,14 @@ react-profession-bench/
 │       ├── main.tsx
 │       └── App.tsx
 ├── evaluation/                     # Evaluation criteria (NOT shown to implementer)
-│   ├── rubric.md                   # LLM-judge scoring rubric
+│   ├── rubric.md                   # LLM-judge scoring rubric (per-spec weights)
 │   ├── anti-patterns.md           # Catalog of detected anti-patterns
-│   └── 001-event-registration-form/
-│       └── expected-signals.json   # Spec-specific evaluation signals
+│   ├── 001-event-registration-form/
+│   │   └── expected-signals.json   # Spec-specific signals + rubric weights
+│   ├── 002-data-dashboard/
+│   │   └── expected-signals.json
+│   └── 003-quiz-builder/
+│       └── expected-signals.json
 └── runner/                         # Orchestration engine (future)
     └── ...
 ```
@@ -90,9 +100,13 @@ Each spec is a self-contained Markdown document describing a small React applica
 
 ### Available Specs
 
-| ID | Name | Key Signals Tested |
-|---|---|---|
-| 001 | Event Registration Form | Derived state, effect hygiene, form handling, component composition, accessibility |
+Each spec has its own rubric weight profile, emphasizing different React skills.
+
+| ID | Name | Primary Focus | Key Signals Tested |
+|---|---|---|---|
+| 001 | Event Registration Form | State Architecture, Effect Hygiene | Derived state traps, useEffect anti-patterns, validation-on-blur, form handling |
+| 002 | Multi-Panel Data Dashboard | Performance, Component Design | Memoization of expensive filtering/sorting, React.memo, generic list composition, discriminated unions |
+| 003 | Accessible Interactive Quiz Builder | Accessibility, TypeScript Quality | ARIA patterns, focus management, keyboard navigation, discriminated union narrowing, type-specific components |
 
 ## Evaluation Details
 

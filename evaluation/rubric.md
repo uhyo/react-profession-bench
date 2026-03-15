@@ -109,11 +109,11 @@ Does the code show appropriate awareness of rendering performance?
 
 | Score | Descriptor |
 |---|---|
-| 5 | `useMemo` is used for genuinely expensive computations (if any exist). `useCallback` is used where callback stability matters (e.g., callbacks passed to memoized children). No premature optimization — memoization is not applied blindly to everything. Object/array literals are not created inline in JSX props where they would cause unnecessary re-renders of memoized children. |
-| 4 | Good awareness. One minor miss — either a missing optimization where it clearly matters or one unnecessary memoization. |
-| 3 | Inconsistent. Either over-memoizes everything (wrapping every function in `useCallback` and every value in `useMemo` regardless of need) or misses clear optimization opportunities. |
-| 2 | Poor awareness. Creates new objects/functions on every render in performance-sensitive paths. Or applies `React.memo` / `useMemo` / `useCallback` in a way that shows misunderstanding (e.g., memoizing a value that depends on every piece of state). |
-| 1 | No awareness whatsoever. Inline object/function creation everywhere. No use of memoization even where it would clearly help. Or completely wrong usage of memoization APIs. |
+| 5 | `useMemo` is used for genuinely expensive computations (if any exist). `useCallback` is used where callback stability matters (e.g., callbacks passed to memoized children). No premature optimization — memoization is not applied blindly to everything. Object/array literals are not created inline in JSX props where they would cause unnecessary re-renders of memoized children. Where applicable, concurrent rendering APIs (`useDeferredValue`, `useTransition`) are used to keep interactive elements responsive while expensive re-renders are deferred. Visual feedback (e.g., dimmed list) indicates pending updates. |
+| 4 | Good awareness. One minor miss — either a missing optimization where it clearly matters, one unnecessary memoization, or concurrent rendering is used but without visual pending feedback. |
+| 3 | Inconsistent. Either over-memoizes everything (wrapping every function in `useCallback` and every value in `useMemo` regardless of need) or misses clear optimization opportunities. May use manual debouncing (setTimeout) where concurrent rendering would be more appropriate. |
+| 2 | Poor awareness. Creates new objects/functions on every render in performance-sensitive paths. Or applies `React.memo` / `useMemo` / `useCallback` in a way that shows misunderstanding (e.g., memoizing a value that depends on every piece of state). No use of concurrent rendering where it is clearly needed. |
+| 1 | No awareness whatsoever. Inline object/function creation everywhere. No use of memoization even where it would clearly help. Or completely wrong usage of memoization APIs. No concurrent rendering consideration. |
 
 ### What to look for
 
@@ -121,6 +121,9 @@ Does the code show appropriate awareness of rendering performance?
 - Are callbacks passed to child components stable when they should be?
 - Is `React.memo` used on any components? Is the usage justified?
 - Are object/array literals created inline in JSX props? (e.g., `style={{ ... }}` in a map)
+- Where user input triggers expensive list re-renders, is `useDeferredValue` or `useTransition` used to keep the input responsive?
+- Is there visual feedback (e.g., reduced opacity) while a deferred/transitioned update is pending?
+- Is manual debouncing (`setTimeout`) used as a substitute where concurrent rendering would be more appropriate?
 
 ---
 
@@ -189,19 +192,32 @@ The LLM judge must respond in this JSON format:
 }
 ```
 
-The `weighted_score` is calculated as:
+The `weighted_score` is calculated using per-spec weights from `expected-signals.json`:
 
 ```
 weighted_score = (
-  state_architecture × 25 +
-  effect_hygiene × 20 +
-  component_design × 20 +
-  typescript_quality × 15 +
-  performance_awareness × 10 +
-  accessibility_semantics × 10
+  state_architecture × W_sa +
+  effect_hygiene × W_eh +
+  component_design × W_cd +
+  typescript_quality × W_ts +
+  performance_awareness × W_pa +
+  accessibility_semantics × W_as
 ) / 5 × 100 / 100
 ```
 
-Which simplifies to: multiply each score by its weight, sum, divide by 5, multiply by 20.
+Where `W_*` values are the `rubric_weights` from the spec's `expected-signals.json` (must sum to 100).
 
-A perfect score (all 5s) = 100. The minimum (all 1s) = 20.
+Multiply each score by its weight, sum, divide by 5, multiply by 20. A perfect score (all 5s) = 100. The minimum (all 1s) = 20.
+
+### Per-Spec Weight Profiles
+
+| Category | 001 (Form) | 002 (Dashboard) | 003 (Quiz Builder) |
+|---|---|---|---|
+| State Architecture | **25** | 10 | 15 |
+| Effect Hygiene | **20** | 5 | 10 |
+| Component Design | 20 | **25** | 15 |
+| TypeScript Quality | 15 | 20 | **25** |
+| Performance Awareness | 10 | **30** | 5 |
+| Accessibility & Semantics | 10 | 10 | **30** |
+
+Each spec emphasizes different categories (bold = primary focus), ensuring the benchmark collectively covers all six dimensions as primary measurement targets.

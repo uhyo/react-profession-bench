@@ -1,0 +1,117 @@
+{
+  "spec_id": "002",
+  "spec_name": "Multi-Panel Data Dashboard",
+  "rubric_weights": {
+    "state_architecture": 10,
+    "effect_hygiene": 5,
+    "component_design": 25,
+    "typescript_quality": 20,
+    "performance_awareness": 30,
+    "accessibility_semantics": 10
+  },
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "filteredContacts",
+      "trigger": "Requirements 4, 5: search and sort on contacts list",
+      "correct": "Computed via useMemo keyed on search text, sort field, and CONTACTS",
+      "anti_pattern": "Stored as useState and synced via useEffect watching search/sort"
+    },
+    {
+      "name": "filteredMessages",
+      "trigger": "Requirements 9-13: filtered/sorted message list",
+      "correct": "Computed via useMemo keyed on search text, sort field, selected contact, and MESSAGES",
+      "anti_pattern": "Stored as useState and synced via useEffect"
+    },
+    {
+      "name": "contactMessageDates",
+      "trigger": "Requirement 3: most recent message date per contact",
+      "correct": "Pre-computed once via useMemo from MESSAGES (static data)",
+      "anti_pattern": "Recomputed inline for every contact row on every render"
+    },
+    {
+      "name": "statusBarCounts",
+      "trigger": "Requirement 19: status bar with counts",
+      "correct": "Derived from filtered arrays' .length — no separate state needed",
+      "anti_pattern": "Separate useState for counts, synced via useEffect"
+    }
+  ],
+  "legitimate_effect_uses": [],
+  "performance_signals": [
+    {
+      "signal": "useMemo for filtered/sorted lists",
+      "why": "Filtering 200 contacts and 500 messages on every render is wasteful; useMemo keyed on filter text + sort field avoids recomputation when unrelated state changes"
+    },
+    {
+      "signal": "React.memo on panel components",
+      "why": "Typing in the Contacts search should not re-render the Messages panel or Detail panel"
+    },
+    {
+      "signal": "Stable callback references via useCallback",
+      "why": "Callbacks passed to memoized child panels must be stable or memoization is defeated"
+    },
+    {
+      "signal": "Stable key prop on list items (using item ID, not index)",
+      "why": "Filtered lists change which items are shown; index-as-key causes incorrect DOM recycling"
+    },
+    {
+      "signal": "No inline object/function creation in map loops",
+      "why": "Creating new onClick handlers or style objects inside .map() for 200+ items creates GC pressure and defeats memoization of list items"
+    },
+    {
+      "signal": "Concurrent rendering for search filtering (useDeferredValue or useTransition)",
+      "why": "Search inputs filter large lists (200 contacts, 500 messages). Without concurrent rendering, every keystroke blocks the main thread until filtering and re-rendering completes, causing input lag. useDeferredValue on the search text (or useTransition around the filter update) lets React keep the input responsive by deferring the expensive list re-render to a lower priority.",
+      "correct": "useDeferredValue on the search query, with the deferred value used for filtering/rendering the list. The input is controlled by the immediate state value. Alternatively, useTransition wrapping the state update that triggers filtering.",
+      "anti_pattern_tier1": "No concurrent rendering at all — input and list update synchronously, causing typing lag",
+      "anti_pattern_tier2": "Manual debouncing with setTimeout as a substitute for concurrent rendering — this delays the update by a fixed time rather than letting React schedule it intelligently, and shows a gap in React 19 knowledge"
+    },
+    {
+      "signal": "Visual feedback during pending transition (stale indicator)",
+      "why": "Requirements 19-20: while the deferred/transitioned list update is pending, the list should appear dimmed. With useDeferredValue this is detected by comparing the deferred value to the current value (isPending = deferredQuery !== query). With useTransition, the isPending flag is used directly.",
+      "correct": "Reduced opacity or other visual indicator on the list while the deferred value differs from the current value, or while useTransition's isPending is true",
+      "anti_pattern": "No visual feedback — the list shows stale results with no indication, or the stale indicator is implemented via a separate useState + useEffect instead of leveraging the transition/deferred API"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 5,
+    "maximum_reasonable": 15,
+    "expected_components": [
+      "App (root, owns selection state)",
+      "ContactsPanel (contacts list with search/sort)",
+      "MessagesPanel (messages list with search/sort)",
+      "DetailPanel (selected message detail)",
+      "StatusBar (bottom status bar)"
+    ],
+    "composition_opportunity": "ContactsPanel and MessagesPanel share a pattern: search input + sort dropdown + scrollable list + count label. A generic ListPanel or FilterableList component (possibly with generics) would reduce duplication.",
+    "optional_but_good": [
+      "FilterableList<T> (generic reusable list wrapper)",
+      "ContactRow (individual contact item)",
+      "MessageRow (individual message item)",
+      "TextMessageDetail / ImageMessageDetail / FileMessageDetail (type-specific detail renderers)",
+      "SearchInput (reusable search input)"
+    ]
+  },
+  "typescript_signals": [
+    {
+      "signal": "Exhaustive switch on message.type for detail rendering",
+      "correct": "switch (message.type) with cases for 'text', 'image', 'file' — TypeScript narrows the type in each branch",
+      "anti_pattern": "Optional chaining on all fields (message.content?.substring(...)) without narrowing"
+    },
+    {
+      "signal": "Generic list component typed with <T>",
+      "correct": "FilterableList<T> with typed item renderer: (item: T) => ReactNode",
+      "anti_pattern": "items: any[] in the reusable list component"
+    },
+    {
+      "signal": "Sort comparator typed precisely",
+      "correct": "Typed comparator function signature for each sortable entity",
+      "anti_pattern": "(a: any, b: any) => number"
+    }
+  ],
+  "accessibility_checkpoints": [
+    "List items are keyboard-selectable (button or clickable with role)",
+    "Selected item has aria-selected or aria-current",
+    "Search inputs have associated labels",
+    "Sort dropdowns have associated labels",
+    "Detail panel updates are perceivable (aria-live or focus management)"
+  ]
+}
