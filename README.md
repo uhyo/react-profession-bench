@@ -63,9 +63,12 @@ react-profession-bench/
 │   ├── 002-data-dashboard/
 │   │   ├── spec.md
 │   │   └── data-model.ts           # Types + static data (200 contacts, 500 messages)
-│   └── 003-quiz-builder/
+│   ├── 003-quiz-builder/
+│   │   ├── spec.md
+│   │   └── data-model.ts           # Discriminated union types for question types
+│   └── 004-user-profile-browser/
 │       ├── spec.md
-│       └── data-model.ts           # Discriminated union types for question types
+│       └── data-model.ts           # Types + simulated async API with delays/errors
 ├── scaffold/                       # Template project given to the LLM
 │   ├── package.json
 │   ├── tsconfig.json
@@ -81,7 +84,9 @@ react-profession-bench/
 │   │   └── expected-signals.json   # Spec-specific signals + rubric weights
 │   ├── 002-data-dashboard/
 │   │   └── expected-signals.json
-│   └── 003-quiz-builder/
+│   ├── 003-quiz-builder/
+│   │   └── expected-signals.json
+│   └── 004-user-profile-browser/
 │       └── expected-signals.json
 └── runner/                         # Orchestration engine (future)
     └── ...
@@ -107,6 +112,7 @@ Each spec has its own rubric weight profile, emphasizing different React skills.
 | 001 | Event Registration Form | State Architecture, Effect Hygiene | Derived state traps, useEffect anti-patterns, validation-on-blur, form handling |
 | 002 | Multi-Panel Data Dashboard | Performance, Component Design | Memoization of expensive filtering/sorting, React.memo, generic list composition, discriminated unions |
 | 003 | Accessible Interactive Quiz Builder | Accessibility, TypeScript Quality | ARIA patterns, focus management, keyboard navigation, discriminated union narrowing, type-specific components |
+| 004 | User Profile Browser | Effect Hygiene, Accessibility | Suspense for data fetching, granular Suspense boundaries, error boundaries, useTransition for navigation, progressive loading, loading skeletons |
 
 ## Evaluation Details
 

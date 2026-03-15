@@ -1,0 +1,122 @@
+{
+  "spec_id": "004",
+  "spec_name": "User Profile Browser",
+  "rubric_weights": {
+    "state_architecture": 15,
+    "effect_hygiene": 25,
+    "component_design": 15,
+    "typescript_quality": 10,
+    "performance_awareness": 15,
+    "accessibility_semantics": 20
+  },
+  "primary_focus": "Suspense, async data fetching patterns, error boundaries, and concurrent rendering",
+  "suspense_signals": [
+    {
+      "signal": "Suspense for data fetching",
+      "correct": "Wrap async-data-dependent components in <Suspense fallback={...}>. Use React 19's `use()` hook to read promises inside components, or create a Suspense-compatible data resource (promise-based cache pattern). Each independent data section (profile, posts, followers) has its own Suspense boundary so they load progressively.",
+      "acceptable_alternative": "Using `use()` hook (React 19) to unwrap promises directly inside a component wrapped in Suspense.",
+      "anti_pattern_tier1": "No Suspense at all — using useEffect + useState + isLoading for all data fetching, resulting in manual loading state management across every component",
+      "anti_pattern_tier2": "A single Suspense boundary wrapping the entire profile view — defeats progressive loading since all three sections wait for the slowest one"
+    },
+    {
+      "signal": "Granular Suspense boundaries for progressive loading",
+      "correct": "Separate <Suspense> boundaries for Profile Info, Posts, and Followers sections. Each has its own fallback skeleton. When posts take 1000ms and followers take 700ms, followers appear first.",
+      "anti_pattern": "One Suspense boundary around all three sections — everything waits for the slowest fetch"
+    },
+    {
+      "signal": "Loading skeletons as Suspense fallbacks",
+      "correct": "<Suspense fallback={<PostsSkeleton />}> with purpose-built skeleton components that match the shape of the loaded content",
+      "anti_pattern": "Generic spinner or 'Loading...' text as fallback instead of content-shaped skeletons"
+    },
+    {
+      "signal": "useTransition for navigation between profiles",
+      "correct": "When navigating from one user profile to another (via follower click), wrap the navigation state update in startTransition so the old profile stays visible until the new data is ready (Requirement 15)",
+      "anti_pattern": "Navigation immediately shows loading skeletons, flashing the UI to a blank state before new data arrives"
+    }
+  ],
+  "error_handling_signals": [
+    {
+      "signal": "Error boundaries for per-section error handling",
+      "correct": "Each section (profile, posts, followers) wrapped in an error boundary that catches fetch failures and shows a retry button. One section failing does not affect others (Requirement 14).",
+      "anti_pattern_tier1": "No error boundaries — errors crash the entire app or are caught by a single top-level boundary",
+      "anti_pattern_tier2": "Error handling via try/catch in useEffect with error state — works but misses the Suspense+ErrorBoundary pattern that React 19 encourages"
+    },
+    {
+      "signal": "Retry mechanism resets the error boundary",
+      "correct": "Retry button resets the error boundary (via key prop change or resetErrorBoundary callback) and re-triggers the data fetch",
+      "anti_pattern": "Retry calls the fetch function directly and manages error/data state manually, bypassing the boundary"
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "postPreview",
+      "trigger": "Requirement 11: first 100 characters of post body",
+      "correct": "Computed inline: body.slice(0, 100) + (body.length > 100 ? '...' : '')",
+      "anti_pattern": "Stored as separate state"
+    },
+    {
+      "name": "followerInitials",
+      "trigger": "Requirement 12: initials in avatar circles",
+      "correct": "Already provided by the API in the Follower type — just render it",
+      "anti_pattern": "Recompute or store in separate state"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "NONE expected if using Suspense correctly",
+      "note": "With Suspense + use(), data fetching does not require useEffect at all. The presence of useEffect for data fetching is a signal that the developer is using the pre-Suspense pattern."
+    },
+    {
+      "purpose": "If NOT using Suspense: useEffect for data fetching",
+      "expected_pattern": "useEffect with cleanup/abort for each fetch, proper loading/error state management. This works but is the older pattern and should score lower on Effect Hygiene."
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 6,
+    "maximum_reasonable": 18,
+    "expected_components": [
+      "App (root, navigation state)",
+      "UserList (list view with Suspense boundary)",
+      "UserProfile (profile view orchestrating sections)",
+      "ProfileInfo (user profile details section)",
+      "PostsList (user's posts section)",
+      "FollowersGrid (followers section)",
+      "ErrorBoundary (reusable error boundary with retry)",
+      "Skeleton components (UserListSkeleton, ProfileSkeleton, PostsSkeleton, FollowersSkeleton)"
+    ],
+    "optional_but_good": [
+      "PostCard (individual post display)",
+      "FollowerAvatar (individual follower circle)",
+      "RetryButton (reusable retry trigger)"
+    ]
+  },
+  "performance_signals": [
+    {
+      "signal": "useTransition for profile-to-profile navigation",
+      "why": "Requirement 15: navigating between profiles should not flash to loading state. startTransition keeps the old UI visible until new data is ready."
+    },
+    {
+      "signal": "User list cached across navigations",
+      "why": "Requirement 13: returning to user list should not re-fetch. The data/promise should be stored outside the component or in a stable ref."
+    }
+  ],
+  "accessibility_checkpoints": [
+    "Loading skeletons have aria-busy='true' or role='status'",
+    "User list items are keyboard-navigable (buttons or links)",
+    "Error messages are announced to screen readers (role='alert' or aria-live)",
+    "Back button is a proper <button> element",
+    "Follower avatars/links have accessible names"
+  ],
+  "event_handler_patterns": [
+    {
+      "interaction": "Clicking a user to navigate to profile",
+      "correct": "onClick handler that updates navigation state, possibly wrapped in startTransition",
+      "anti_pattern": "useEffect watching selectedUserId to trigger data fetching"
+    },
+    {
+      "interaction": "Retry after fetch failure",
+      "correct": "onClick handler that resets the error boundary (e.g., incrementing a key), causing Suspense to re-trigger the fetch",
+      "anti_pattern": "onClick that manually calls the fetch function and sets state"
+    }
+  ]
+}

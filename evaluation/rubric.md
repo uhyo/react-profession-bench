@@ -56,6 +56,8 @@ Are `useEffect` calls used correctly — only for true side effects?
 - Does any `useEffect` body only call state setters with computations based on other state? (anti-pattern)
 - Does any `useEffect` handle what should be a user interaction? (e.g., validation triggered by effect instead of onBlur)
 - Are timers (`setTimeout`, `setInterval`) or event listeners cleaned up in the effect's return function?
+- **For specs with async data fetching**: Is Suspense used instead of manual `useEffect` + loading state? React 19's `use()` hook with Suspense boundaries eliminates the need for data-fetching effects entirely. The `useEffect` + `useState` + `isLoading` pattern still works but represents the older approach and should score lower.
+- Are error boundaries used for per-section error isolation, or is error handling done via try/catch in useEffect with error state?
 
 ---
 
@@ -211,13 +213,15 @@ Multiply each score by its weight, sum, divide by 5, multiply by 20. A perfect s
 
 ### Per-Spec Weight Profiles
 
-| Category | 001 (Form) | 002 (Dashboard) | 003 (Quiz Builder) |
-|---|---|---|---|
-| State Architecture | **25** | 10 | 15 |
-| Effect Hygiene | **20** | 5 | 10 |
-| Component Design | 20 | **25** | 15 |
-| TypeScript Quality | 15 | 20 | **25** |
-| Performance Awareness | 10 | **30** | 5 |
-| Accessibility & Semantics | 10 | 10 | **30** |
+| Category | 001 (Form) | 002 (Dashboard) | 003 (Quiz Builder) | 004 (Profile Browser) |
+|---|---|---|---|---|
+| State Architecture | **25** | 10 | 15 | 15 |
+| Effect Hygiene | **20** | 5 | 10 | **25** |
+| Component Design | 20 | **25** | 15 | 15 |
+| TypeScript Quality | 15 | 20 | **25** | 10 |
+| Performance Awareness | 10 | **30** | 5 | 15 |
+| Accessibility & Semantics | 10 | 10 | **30** | **20** |
 
 Each spec emphasizes different categories (bold = primary focus), ensuring the benchmark collectively covers all six dimensions as primary measurement targets.
+
+Spec 004 uses Effect Hygiene weight to measure Suspense adoption: with Suspense + `use()`, data fetching requires zero `useEffect` calls. The traditional `useEffect` + `useState` + `isLoading` pattern works but scores lower.
