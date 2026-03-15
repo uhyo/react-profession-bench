@@ -225,7 +225,7 @@ async function runImplementation(specId: string, model: string, workDir: string)
       "--max-budget-usd", MAX_BUDGET_USD,
       "--no-session-persistence",
       "--allowedTools", "Read", "Write", "Edit", "Bash", "Glob", "Grep",
-    ], { cwd: workDir, timeout: 600_000, stdin: prompt });
+    ], { cwd: workDir, timeout: 1_800_000, stdin: prompt });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log(`  Implementation failed: ${msg.slice(0, 200)}`);

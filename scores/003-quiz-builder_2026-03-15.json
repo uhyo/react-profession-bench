@@ -18,11 +18,18 @@
   {
     "spec": "003-quiz-builder",
     "model": "opus",
-    "timestamp": "2026-03-15T10:32:33.011Z",
+    "timestamp": "2026-03-15T13:56:54.181Z",
     "compiles": false,
-    "weighted_score": null,
-    "categories": null,
-    "error": "claude timed out after 600000ms"
+    "weighted_score": 69,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
   },
   {
     "spec": "003-quiz-builder",
