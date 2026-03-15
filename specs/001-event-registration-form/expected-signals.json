@@ -1,0 +1,95 @@
+{
+  "spec_id": "001",
+  "spec_name": "Event Registration Form",
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "wordCount",
+      "trigger": "Requirement 9: word count below bio textarea",
+      "correct": "Computed inline: `bio.trim().split(/\\s+/).length` or similar",
+      "anti_pattern": "Stored as separate `useState` and synced via `useEffect`"
+    },
+    {
+      "name": "isNextDisabled / isFormComplete",
+      "trigger": "Requirements 2, 15: Next/Submit button disabled when validation errors exist",
+      "correct": "Derived from current form state and validation rules during render",
+      "anti_pattern": "Stored as `useState(false)` and updated via `useEffect` watching form fields"
+    },
+    {
+      "name": "previewData",
+      "trigger": "Requirement 4: live preview sidebar",
+      "correct": "Rendered directly from the form state — no separate state needed",
+      "anti_pattern": "Separate state object for preview, synced via `useEffect`"
+    },
+    {
+      "name": "formattedPhoneNumber",
+      "trigger": "Requirement 8: phone number auto-formatting",
+      "correct": "Formatting applied in the onChange handler or computed during render from raw digits",
+      "anti_pattern": "useEffect watching phone state, reformatting and calling setState"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "Load draft from localStorage on mount",
+      "expected_pattern": "useEffect with empty dependency array, reads localStorage, sets form state"
+    },
+    {
+      "purpose": "Save draft to localStorage when form state changes",
+      "expected_pattern": "useEffect watching form state, writes to localStorage (ideally debounced)"
+    }
+  ],
+  "event_handler_patterns": [
+    {
+      "interaction": "Field validation on blur (Requirement 21)",
+      "correct": "onBlur handler that runs validation for that field",
+      "anti_pattern": "useEffect watching field values to trigger validation"
+    },
+    {
+      "interaction": "Re-validate on change after blur (Requirement 21)",
+      "correct": "onChange handler checks if field was previously touched/errored, runs validation",
+      "anti_pattern": "useEffect watching touched state and field values together"
+    },
+    {
+      "interaction": "Dietary restriction mutual exclusion (Requirement 13)",
+      "correct": "onChange handler implements the toggle logic directly",
+      "anti_pattern": "useEffect watching selected restrictions to enforce mutual exclusion"
+    },
+    {
+      "interaction": "Phone number formatting (Requirement 8)",
+      "correct": "onChange handler strips non-digits and applies formatting",
+      "anti_pattern": "useEffect watching phone value to reformat it"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 5,
+    "maximum_reasonable": 15,
+    "expected_components": [
+      "App (root)",
+      "StepIndicator (step progress display)",
+      "PersonalInfoStep (step 1 fields)",
+      "EventPreferencesStep (step 2 fields)",
+      "ConfirmationStep (step 3 summary)",
+      "Preview (sidebar)",
+      "Modal (confirmation dialog)"
+    ],
+    "optional_but_good": [
+      "FormField (reusable labeled input wrapper)",
+      "NavigationButtons (Back/Next)",
+      "SuccessMessage"
+    ]
+  },
+  "custom_hooks": {
+    "minimum_expected": 1,
+    "opportunities": [
+      "useFormDraft — localStorage persistence logic",
+      "useFormValidation — validation state and handlers",
+      "useDebounce — debouncing the localStorage save"
+    ]
+  },
+  "accessibility_checkpoints": [
+    "All form inputs have associated <label> elements (via htmlFor or wrapping)",
+    "Error messages are associated with inputs (aria-describedby or adjacent)",
+    "Buttons have type attribute (type='button' or type='submit')",
+    "Modal is implemented as a dialog or has appropriate ARIA roles",
+    "Step indicator conveys current step to screen readers (aria-current or similar)"
+  ]
+}
