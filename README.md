@@ -56,11 +56,10 @@ The LLM judge runs 3 times; the median is used to reduce variance.
 ```
 react-profession-bench/
 ├── README.md
-├── specs/                          # Benchmark specifications
+├── specs/                          # Benchmark specifications (given to implementer)
 │   └── 001-event-registration-form/
-│       ├── spec.md                 # Behavioral spec (given to implementer)
-│       ├── data-model.ts           # TypeScript types (given to implementer)
-│       └── expected-signals.json   # What the evaluator looks for
+│       ├── spec.md                 # Behavioral spec
+│       └── data-model.ts           # TypeScript types
 ├── scaffold/                       # Template project given to the LLM
 │   ├── package.json
 │   ├── tsconfig.json
@@ -69,9 +68,11 @@ react-profession-bench/
 │   └── src/
 │       ├── main.tsx
 │       └── App.tsx
-├── evaluation/                     # Evaluation criteria & rubric
+├── evaluation/                     # Evaluation criteria (NOT shown to implementer)
 │   ├── rubric.md                   # LLM-judge scoring rubric
-│   └── anti-patterns.md           # Catalog of detected anti-patterns
+│   ├── anti-patterns.md           # Catalog of detected anti-patterns
+│   └── 001-event-registration-form/
+│       └── expected-signals.json   # Spec-specific evaluation signals
 └── runner/                         # Orchestration engine (future)
     └── ...
 ```
