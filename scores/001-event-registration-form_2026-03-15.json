@@ -1,0 +1,50 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "sonnet",
+    "timestamp": "2026-03-15T09:44:50.528Z",
+    "compiles": true,
+    "weighted_score": 86,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "001-event-registration-form",
+    "model": "opus",
+    "timestamp": "2026-03-15T09:52:51.380Z",
+    "compiles": true,
+    "weighted_score": 85,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "001-event-registration-form",
+    "model": "haiku",
+    "timestamp": "2026-03-15T10:00:54.596Z",
+    "compiles": true,
+    "weighted_score": 65,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  }
+]

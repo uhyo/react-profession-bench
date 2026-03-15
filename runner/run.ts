@@ -1,4 +1,4 @@
-import { execFile, execFileSync as nodeExecFileSync } from "node:child_process";
+import { spawn, execFileSync as nodeExecFileSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -9,6 +9,7 @@ const SPECS_DIR = join(ROOT, "specs");
 const SCAFFOLD_DIR = join(ROOT, "scaffold");
 const EVALUATION_DIR = join(ROOT, "evaluation");
 const RESULTS_DIR = join(ROOT, "results");
+const SCORES_DIR = join(ROOT, "scores");
 
 const DEFAULT_MODELS = ["sonnet", "opus", "haiku"];
 const EVALUATOR_MODEL = "sonnet";
@@ -104,13 +105,55 @@ function setupWorkDir(specId: string, model: string): string {
   return workDir;
 }
 
-function exec(cmd: string, args: string[], opts: { cwd?: string; timeout?: number } = {}): Promise<{ stdout: string; stderr: string }> {
-  const { cwd, timeout = 300_000 } = opts;
+function exec(
+  cmd: string,
+  args: string[],
+  opts: { cwd?: string; timeout?: number; stdin?: string } = {},
+): Promise<{ stdout: string; stderr: string }> {
+  const { cwd, timeout = 300_000, stdin } = opts;
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, { cwd, timeout, maxBuffer: 10 * 1024 * 1024 }, (err, stdout, stderr) => {
-      if (err) reject(new Error(`${cmd} ${args.join(" ")} failed: ${err.message}\nstderr: ${stderr}`));
-      else resolve({ stdout, stderr });
+    const child = spawn(cmd, args, {
+      cwd,
+      stdio: ["pipe", "pipe", "pipe"],
     });
+
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        child.kill("SIGTERM");
+        reject(new Error(`${cmd} timed out after ${timeout}ms`));
+      }
+    }, timeout);
+
+    child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+    child.stderr.on("data", (chunk: Buffer) => { stderr += chunk.toString(); });
+
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (settled) return;
+      settled = true;
+      if (code !== 0) {
+        reject(new Error(`${cmd} ${args.join(" ")} exited with code ${code}\nstderr: ${stderr}`));
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      if (settled) return;
+      settled = true;
+      reject(new Error(`${cmd} failed to start: ${err.message}`));
+    });
+
+    if (stdin) {
+      child.stdin.write(stdin);
+    }
+    child.stdin.end();
   });
 }
 
@@ -182,8 +225,7 @@ async function runImplementation(specId: string, model: string, workDir: string)
       "--max-budget-usd", MAX_BUDGET_USD,
       "--no-session-persistence",
       "--allowedTools", "Read", "Write", "Edit", "Bash", "Glob", "Grep",
-      prompt,
-    ], { cwd: workDir, timeout: 600_000 });
+    ], { cwd: workDir, timeout: 600_000, stdin: prompt });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log(`  Implementation failed: ${msg.slice(0, 200)}`);
@@ -274,8 +316,7 @@ async function runEvaluation(
       "--max-budget-usd", "1",
       "--no-session-persistence",
       "--tools", "",
-      prompt,
-    ], { timeout: 300_000 });
+    ], { timeout: 300_000, stdin: prompt });
     stdout = result.stdout;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -446,6 +487,14 @@ async function main(): Promise<void> {
 
   writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
   log(`Summary written to ${summaryPath}`);
+
+  // --- Write to scores/ (tracked in git) ---
+  mkdirSync(SCORES_DIR, { recursive: true });
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const specsLabel = config.specs.length === 1 ? config.specs[0] : "multi";
+  const scoresPath = join(SCORES_DIR, `${specsLabel}_${dateStr}.json`);
+  writeFileSync(scoresPath, JSON.stringify(summary, null, 2));
+  log(`Scores written to ${scoresPath}`);
 
   // --- Write per-run detailed results ---
   for (const r of results) {
