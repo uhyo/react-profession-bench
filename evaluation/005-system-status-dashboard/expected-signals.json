@@ -1,0 +1,110 @@
+{
+  "spec_id": "005",
+  "spec_name": "Responsive System Status Dashboard",
+  "rubric_weights": {
+    "state_architecture": 15,
+    "effect_hygiene": 30,
+    "component_design": 15,
+    "typescript_quality": 10,
+    "performance_awareness": 10,
+    "accessibility_semantics": 10
+  },
+  "primary_focus": "useSyncExternalStore for subscribing to browser APIs and external event sources",
+  "sync_external_store_signals": [
+    {
+      "signal": "useSyncExternalStore for online/offline status",
+      "trigger": "Requirement 2: Online Status card updates instantly",
+      "correct": "Custom hook using useSyncExternalStore that subscribes to 'online'/'offline' window events and reads navigator.onLine as the snapshot",
+      "anti_pattern": "useEffect + useState + addEventListener('online') / addEventListener('offline'). This works but is prone to tearing: the initial state might read navigator.onLine at a different time than when React commits, and there is no server-rendering snapshot."
+    },
+    {
+      "signal": "useSyncExternalStore for viewport dimensions",
+      "trigger": "Requirement 3: Viewport Size card updates on resize",
+      "correct": "Custom hook using useSyncExternalStore that subscribes to 'resize' event and returns { width: window.innerWidth, height: window.innerHeight } as the snapshot",
+      "anti_pattern": "useEffect + useState + addEventListener('resize'). The snapshot must return a stable reference for unchanged values (or React will re-render infinitely if returning a new object each time). An expert may return a string/tuple or memoize the snapshot."
+    },
+    {
+      "signal": "useSyncExternalStore for media queries (color scheme, reduced motion)",
+      "trigger": "Requirements 4-5: Color Scheme and Reduced Motion cards update in real time",
+      "correct": "Custom hook using useSyncExternalStore that calls window.matchMedia(query), subscribes via matchMedia.addEventListener('change', ...), and reads matchMedia.matches as the snapshot",
+      "anti_pattern": "useEffect + useState + matchMedia.addEventListener. This pattern requires careful cleanup and is exactly the use case useSyncExternalStore was designed for."
+    },
+    {
+      "signal": "useSyncExternalStore for document visibility",
+      "trigger": "Requirement 6: Document Visibility card updates on tab switch",
+      "correct": "Custom hook using useSyncExternalStore subscribing to 'visibilitychange' on document, reading document.visibilityState as snapshot",
+      "anti_pattern": "useEffect + useState + addEventListener('visibilitychange')"
+    },
+    {
+      "signal": "useSyncExternalStore for the event bus",
+      "trigger": "Requirements 8-10: Notification feed shows events from the custom event bus",
+      "correct": "useSyncExternalStore with subscribeToEventBus as the subscribe function and getEventBusSnapshot as the getSnapshot function. The event bus API is already designed with the subscribe + getSnapshot pattern that useSyncExternalStore expects.",
+      "anti_pattern": "useEffect + useState subscribing to the event bus and manually managing the events array. This misses that the data-model already provides the exact API shape (subscribe + getSnapshot) that useSyncExternalStore consumes."
+    }
+  ],
+  "custom_hook_opportunities": [
+    {
+      "name": "useOnlineStatus",
+      "wraps": "useSyncExternalStore for navigator.onLine"
+    },
+    {
+      "name": "useViewportSize",
+      "wraps": "useSyncExternalStore for window dimensions"
+    },
+    {
+      "name": "useMediaQuery",
+      "wraps": "useSyncExternalStore for matchMedia — generic, reusable for both color scheme and reduced motion"
+    },
+    {
+      "name": "useDocumentVisibility",
+      "wraps": "useSyncExternalStore for document.visibilityState"
+    },
+    {
+      "name": "useEventBus",
+      "wraps": "useSyncExternalStore with subscribeToEventBus + getEventBusSnapshot"
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "filteredEvents",
+      "trigger": "Requirement 12: filter events by type",
+      "correct": "Computed via useMemo from events and active type filters",
+      "anti_pattern": "Stored as separate state synced via useEffect"
+    },
+    {
+      "name": "eventCounts",
+      "trigger": "Requirement 13: count summary by type",
+      "correct": "Derived from events array during render",
+      "anti_pattern": "Separate useState tracking counts, updated via useEffect"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "Start/stop the event bus on mount/unmount",
+      "expected_pattern": "useEffect(() => { startEventBus(); return () => stopEventBus(); }, [])"
+    },
+    {
+      "purpose": "Interval timer for updating relative timestamps",
+      "expected_pattern": "useEffect with setInterval to trigger re-renders for 'X seconds ago' display, with proper cleanup"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 5,
+    "maximum_reasonable": 15,
+    "expected_components": [
+      "App (root)",
+      "StatusCard (reusable card for each status indicator)",
+      "StatusGrid (grid of status cards)",
+      "NotificationFeed (event list with filtering)",
+      "EventRow (individual event in the feed)",
+      "FilterBar (type filter toggles)",
+      "SnapshotLog (snapshot list)"
+    ]
+  },
+  "accessibility_checkpoints": [
+    "Status cards use aria-live or role='status' for live-updating values",
+    "Filter toggle buttons have aria-pressed attribute",
+    "Event type indicators are not color-only (include text labels)",
+    "Snapshot button is a proper <button> element"
+  ]
+}

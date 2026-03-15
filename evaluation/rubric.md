@@ -58,6 +58,8 @@ Are `useEffect` calls used correctly — only for true side effects?
 - Are timers (`setTimeout`, `setInterval`) or event listeners cleaned up in the effect's return function?
 - **For specs with async data fetching**: Is Suspense used instead of manual `useEffect` + loading state? React 19's `use()` hook with Suspense boundaries eliminates the need for data-fetching effects entirely. The `useEffect` + `useState` + `isLoading` pattern still works but represents the older approach and should score lower.
 - Are error boundaries used for per-section error isolation, or is error handling done via try/catch in useEffect with error state?
+- **For specs subscribing to external sources (browser APIs, event buses, WebSockets)**: Is `useSyncExternalStore` used? The `useEffect` + `useState` + `addEventListener` pattern works but is prone to tearing (stale reads between render and commit) and is exactly the problem `useSyncExternalStore` (React 18+) was designed to solve. Look for custom hooks wrapping `useSyncExternalStore` with `subscribe` and `getSnapshot` functions.
+- **For specs where effects need latest values without re-triggering**: Is `useEffectEvent` (React 19.2) used? When an effect subscribes to an external source and the callback needs to read the latest notification settings/configuration without re-establishing the subscription, `useEffectEvent` is the correct approach. The ref-based workaround (`useRef` + manual sync) works but is the pattern `useEffectEvent` was designed to replace.
 
 ---
 
@@ -213,15 +215,18 @@ Multiply each score by its weight, sum, divide by 5, multiply by 20. A perfect s
 
 ### Per-Spec Weight Profiles
 
-| Category | 001 (Form) | 002 (Dashboard) | 003 (Quiz Builder) | 004 (Profile Browser) |
-|---|---|---|---|---|
-| State Architecture | **25** | 10 | 15 | 15 |
-| Effect Hygiene | **20** | 5 | 10 | **25** |
-| Component Design | 20 | **25** | 15 | 15 |
-| TypeScript Quality | 15 | 20 | **25** | 10 |
-| Performance Awareness | 10 | **30** | 5 | 15 |
-| Accessibility & Semantics | 10 | 10 | **30** | **20** |
+| Category | 001 (Form) | 002 (Dashboard) | 003 (Quiz) | 004 (Profile) | 005 (Status) | 006 (Feed) |
+|---|---|---|---|---|---|---|
+| State Architecture | **25** | 10 | 15 | 15 | 15 | 15 |
+| Effect Hygiene | **20** | 5 | 10 | **25** | **30** | **30** |
+| Component Design | 20 | **25** | 15 | 15 | 15 | 15 |
+| TypeScript Quality | 15 | 20 | **25** | 10 | 10 | 15 |
+| Performance Awareness | 10 | **30** | 5 | 15 | 10 | 5 |
+| Accessibility & Semantics | 10 | 10 | **30** | **20** | 10 | 10 |
 
 Each spec emphasizes different categories (bold = primary focus), ensuring the benchmark collectively covers all six dimensions as primary measurement targets.
 
-Spec 004 uses Effect Hygiene weight to measure Suspense adoption: with Suspense + `use()`, data fetching requires zero `useEffect` calls. The traditional `useEffect` + `useState` + `isLoading` pattern works but scores lower.
+**Effect Hygiene focus by spec:**
+- **Spec 004** measures Suspense adoption — with Suspense + `use()`, data fetching requires zero `useEffect` calls. The traditional pattern works but scores lower.
+- **Spec 005** measures `useSyncExternalStore` — subscribing to browser APIs and external stores. The `useEffect` + `useState` + `addEventListener` pattern works but is prone to tearing and is exactly what `useSyncExternalStore` was designed to replace.
+- **Spec 006** measures `useEffectEvent` — reading latest values in effects without re-triggering subscriptions. The ref-based workaround works but is the manual pattern that `useEffectEvent` replaces.

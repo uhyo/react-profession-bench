@@ -1,0 +1,94 @@
+{
+  "spec_id": "006",
+  "spec_name": "Notification-Enabled Activity Feed",
+  "rubric_weights": {
+    "state_architecture": 15,
+    "effect_hygiene": 30,
+    "component_design": 15,
+    "typescript_quality": 15,
+    "performance_awareness": 5,
+    "accessibility_semantics": 10
+  },
+  "primary_focus": "useEffectEvent for reading latest values in effects without re-triggering subscriptions",
+  "effect_event_signals": [
+    {
+      "signal": "useEffectEvent for notification handling in the event subscription",
+      "trigger": "Requirement 8: changing notification settings must not cause the event subscription to be re-established",
+      "correct": "The effect that subscribes to the WebSocket connection uses useEffectEvent to define the notification handler. The effect itself depends only on the connection (connect/disconnect), not on sound/toast/keyword/severity settings. The effect event reads the latest settings values when called, without being listed in the effect's dependency array.",
+      "example_structure": "const onEvent = useEffectEvent((event: ActivityEvent) => { if (matchesKeyword(event, keyword) && meetsMinSeverity(event, minSeverity)) { if (soundEnabled) playNotificationSound(); if (toastEnabled) showToast(event, toastDuration); } addEventToFeed(event); }); useEffect(() => { return connect(onEvent); }, []);",
+      "anti_pattern_tier1": "Including all notification settings in the useEffect dependency array, causing the subscription to disconnect and reconnect every time any setting changes — this means missed events during reconnection",
+      "anti_pattern_tier2": "Using a ref to hold the latest settings and reading it inside the effect callback. This works but is the manual pattern that useEffectEvent replaces — it is error-prone (forgetting to update the ref) and shows lack of React 19.2 knowledge.",
+      "anti_pattern_tier3": "Disabling the exhaustive-deps lint rule with eslint-disable to exclude settings from the dependency array. This hides the real problem and risks stale closures in other scenarios."
+    },
+    {
+      "signal": "useEffectEvent for auto-save with configurable interval",
+      "trigger": "Requirements 14-16: auto-save notes at configurable interval, must use latest content",
+      "correct": "The auto-save effect depends on the interval (to reset the timer when interval changes). The actual save logic is an effect event that reads the latest notes content without being a dependency. Changing the interval restarts the timer. Changing the notes content does NOT restart the timer — the next save will pick up the latest content.",
+      "example_structure": "const saveNotes = useEffectEvent(() => { localStorage.setItem('notes', notes); setLastSaved(new Date()); }); useEffect(() => { const id = setInterval(saveNotes, interval); return () => clearInterval(id); }, [interval]);",
+      "anti_pattern_tier1": "Including notes in the useEffect dependency array — this restarts the timer on every keystroke, defeating the purpose of interval-based saving",
+      "anti_pattern_tier2": "Using a ref for notes and reading ref.current inside the interval callback. Works but is the manual workaround for useEffectEvent.",
+      "anti_pattern_tier3": "Using a separate useEffect to sync notes to a ref, then reading the ref in the interval effect. Over-engineered version of the ref workaround."
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "bufferedEventCount",
+      "trigger": "Requirement 6: count badge on Pause button",
+      "correct": "Derived from the buffered events array length",
+      "anti_pattern": "Separate counter state incremented via useEffect"
+    },
+    {
+      "name": "toastList filtering/limiting",
+      "trigger": "Requirement 11: max 5 toasts",
+      "correct": "Toast state is a managed array (via state), but the 5-item limit is enforced in the handler that adds toasts, not via a useEffect that trims the array after it grows"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "Subscribe to the simulated WebSocket (connect/disconnect)",
+      "expected_pattern": "useEffect(() => { return connect(onEvent); }, []) where onEvent is a useEffectEvent",
+      "note": "This is THE core effect. It should have an empty or minimal dependency array. Notification settings must NOT be dependencies."
+    },
+    {
+      "purpose": "Auto-save timer for notes",
+      "expected_pattern": "useEffect with setInterval, depending on the interval setting only. Save logic is a useEffectEvent.",
+      "note": "The effect should restart when interval changes, but NOT when notes content changes."
+    },
+    {
+      "purpose": "Toast auto-dismiss timers",
+      "expected_pattern": "useEffect or setTimeout per toast to remove it after the configured duration"
+    }
+  ],
+  "event_handler_patterns": [
+    {
+      "interaction": "Toggling pause/resume (Requirement 5)",
+      "correct": "onClick handler toggles paused state. Event subscription stays connected. Feed rendering checks paused state.",
+      "anti_pattern": "Disconnecting/reconnecting the WebSocket when pausing"
+    },
+    {
+      "interaction": "Dismissing a toast (Requirement 12)",
+      "correct": "onClick handler removes the toast from toast state array",
+      "anti_pattern": "useEffect watching a 'dismissed' flag"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 6,
+    "maximum_reasonable": 15,
+    "expected_components": [
+      "App (root)",
+      "SettingsPanel (notification settings + notes)",
+      "ActivityFeed (event list with pause/resume)",
+      "EventRow (individual event)",
+      "ToastArea (toast container)",
+      "Toast (individual toast popup)",
+      "NotesEditor (textarea with auto-save indicator)"
+    ]
+  },
+  "accessibility_checkpoints": [
+    "Toast area has role='status' or aria-live='polite'",
+    "Toggle buttons (Sound, Toast, Pause) have aria-pressed",
+    "Dismiss buttons on toasts have accessible labels",
+    "Severity filter dropdown has associated label",
+    "Event type badges use text labels, not just color"
+  ]
+}

@@ -66,9 +66,15 @@ react-profession-bench/
 │   ├── 003-quiz-builder/
 │   │   ├── spec.md
 │   │   └── data-model.ts           # Discriminated union types for question types
-│   └── 004-user-profile-browser/
+│   ├── 004-user-profile-browser/
+│   │   ├── spec.md
+│   │   └── data-model.ts           # Types + simulated async API with delays/errors
+│   ├── 005-system-status-dashboard/
+│   │   ├── spec.md
+│   │   └── data-model.ts           # Types + event bus with subscribe/getSnapshot API
+│   └── 006-notification-activity-feed/
 │       ├── spec.md
-│       └── data-model.ts           # Types + simulated async API with delays/errors
+│       └── data-model.ts           # Types + simulated WebSocket + sound stub
 ├── scaffold/                       # Template project given to the LLM
 │   ├── package.json
 │   ├── tsconfig.json
@@ -86,7 +92,11 @@ react-profession-bench/
 │   │   └── expected-signals.json
 │   ├── 003-quiz-builder/
 │   │   └── expected-signals.json
-│   └── 004-user-profile-browser/
+│   ├── 004-user-profile-browser/
+│   │   └── expected-signals.json
+│   ├── 005-system-status-dashboard/
+│   │   └── expected-signals.json
+│   └── 006-notification-activity-feed/
 │       └── expected-signals.json
 └── runner/                         # Orchestration engine (future)
     └── ...
@@ -113,6 +123,8 @@ Each spec has its own rubric weight profile, emphasizing different React skills.
 | 002 | Multi-Panel Data Dashboard | Performance, Component Design | Memoization of expensive filtering/sorting, React.memo, generic list composition, discriminated unions |
 | 003 | Accessible Interactive Quiz Builder | Accessibility, TypeScript Quality | ARIA patterns, focus management, keyboard navigation, discriminated union narrowing, type-specific components |
 | 004 | User Profile Browser | Effect Hygiene, Accessibility | Suspense for data fetching, granular Suspense boundaries, error boundaries, useTransition for navigation, progressive loading, loading skeletons |
+| 005 | System Status Dashboard | Effect Hygiene | useSyncExternalStore for browser APIs (online status, viewport, media queries, visibility), external event bus subscription, custom hooks wrapping external stores |
+| 006 | Notification Activity Feed | Effect Hygiene | useEffectEvent for stable subscriptions with changing settings, configurable auto-save with latest-value reads, toast management, pause/resume without reconnecting |
 
 ## Evaluation Details
 
