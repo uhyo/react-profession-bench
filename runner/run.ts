@@ -13,35 +13,54 @@ const SCORES_DIR = join(ROOT, "scores");
 
 const MAX_BUDGET_USD = "5";
 
-// --- CLI Providers ---
+// --- Model Registry ---
 
-type CliProvider = "claude" | "copilot";
+type CliBackend = "claude" | "copilot";
 
-interface CliConfig {
-  provider: CliProvider;
-  defaultModels: string[];
-  defaultEvaluatorModel: string;
+interface ModelSpec {
+  backend: CliBackend;
+  modelArg: string; // value passed to --model
 }
 
-const CLI_CONFIGS: Record<CliProvider, CliConfig> = {
-  claude: {
-    provider: "claude",
-    defaultModels: ["sonnet", "opus", "haiku"],
-    defaultEvaluatorModel: "sonnet",
-  },
-  copilot: {
-    provider: "copilot",
-    defaultModels: ["gpt-4.1"],
-    defaultEvaluatorModel: "gpt-4.1",
-  },
+const MODEL_REGISTRY: Record<string, ModelSpec> = {
+  // Claude CLI models (short aliases)
+  "sonnet":   { backend: "claude",  modelArg: "sonnet" },
+  "opus":     { backend: "claude",  modelArg: "opus" },
+  "haiku":    { backend: "claude",  modelArg: "haiku" },
+  // Copilot CLI models (OpenAI)
+  "gpt-4.1":           { backend: "copilot", modelArg: "gpt-4.1" },
+  "gpt-5-mini":        { backend: "copilot", modelArg: "gpt-5-mini" },
+  "gpt-5.1":           { backend: "copilot", modelArg: "gpt-5.1" },
+  "gpt-5.1-codex":     { backend: "copilot", modelArg: "gpt-5.1-codex" },
+  "gpt-5.1-codex-max": { backend: "copilot", modelArg: "gpt-5.1-codex-max" },
+  "gpt-5.1-codex-mini": { backend: "copilot", modelArg: "gpt-5.1-codex-mini" },
+  "gpt-5.2":           { backend: "copilot", modelArg: "gpt-5.2" },
+  "gpt-5.2-codex":     { backend: "copilot", modelArg: "gpt-5.2-codex" },
+  "gpt-5.3-codex":     { backend: "copilot", modelArg: "gpt-5.3-codex" },
+  "gpt-5.4":           { backend: "copilot", modelArg: "gpt-5.4" },
+  // Copilot CLI models (Google)
+  "gemini-3-pro-preview": { backend: "copilot", modelArg: "gemini-3-pro-preview" },
 };
 
-function getImplementationArgs(provider: CliProvider, model: string): string[] {
-  switch (provider) {
+const DEFAULT_MODELS = ["sonnet", "opus", "haiku"];
+const DEFAULT_EVAL_MODEL = "sonnet";
+
+function resolveModel(name: string): ModelSpec {
+  const spec = MODEL_REGISTRY[name];
+  if (!spec) {
+    console.error(`Unknown model: ${name}`);
+    console.error(`Available: ${Object.keys(MODEL_REGISTRY).join(", ")}`);
+    process.exit(1);
+  }
+  return spec;
+}
+
+function getImplementationArgs(spec: ModelSpec): string[] {
+  switch (spec.backend) {
     case "claude":
       return [
         "--print",
-        "--model", model,
+        "--model", spec.modelArg,
         "--permission-mode", "bypassPermissions",
         "--max-budget-usd", MAX_BUDGET_USD,
         "--no-session-persistence",
@@ -49,25 +68,25 @@ function getImplementationArgs(provider: CliProvider, model: string): string[] {
       ];
     case "copilot":
       return [
-        "--model", model,
+        "--model", spec.modelArg,
         "--allow-all",
       ];
   }
 }
 
-function getEvaluationArgs(provider: CliProvider, model: string): string[] {
-  switch (provider) {
+function getEvaluationArgs(spec: ModelSpec): string[] {
+  switch (spec.backend) {
     case "claude":
       return [
         "--print",
-        "--model", model,
+        "--model", spec.modelArg,
         "--max-budget-usd", "1",
         "--no-session-persistence",
         "--tools", "",
       ];
     case "copilot":
       return [
-        "--model", model,
+        "--model", spec.modelArg,
         "--allow-all",
       ];
   }
@@ -76,10 +95,9 @@ function getEvaluationArgs(provider: CliProvider, model: string): string[] {
 // --- Types ---
 
 interface RunConfig {
-  specs: string[];     // e.g. ["001-event-registration-form"]
-  models: string[];    // e.g. ["sonnet", "opus"]
-  cli: CliConfig;
-  evalCli: CliConfig;  // evaluator CLI (defaults to claude for consistency)
+  specs: string[];
+  models: string[];
+  evalModel: string;
   dryRun: boolean;
 }
 
@@ -271,14 +289,15 @@ ${spec.dataModel}
 - Follow the spec precisely.`;
 }
 
-async function runImplementation(specId: string, model: string, workDir: string, cli: CliConfig): Promise<{ files: Record<string, string>; compiles: boolean; error: string | null }> {
+async function runImplementation(specId: string, model: string, workDir: string): Promise<{ files: Record<string, string>; compiles: boolean; error: string | null }> {
   const spec = readSpecFiles(specId);
   const prompt = buildImplementationPrompt(spec);
+  const modelSpec = resolveModel(model);
 
-  log(`  Running implementation with ${cli.provider}:${model}...`);
+  log(`  Running implementation with ${modelSpec.backend}:${modelSpec.modelArg}...`);
 
   try {
-    await exec(cli.provider, getImplementationArgs(cli.provider, model), {
+    await exec(modelSpec.backend, getImplementationArgs(modelSpec), {
       cwd: workDir, timeout: 1_800_000, stdin: prompt,
     });
   } catch (e) {
@@ -355,19 +374,19 @@ Respond with ONLY a JSON object (no markdown fences, no commentary) in this exac
 async function runEvaluation(
   specId: string,
   files: Record<string, string>,
-  cli: CliConfig,
+  evalModel: string,
 ): Promise<{ result: EvaluationResult | null; error: string | null }> {
   const spec = readSpecFiles(specId);
   const evalFiles = readEvaluationFiles(specId);
   const sourceCode = formatSourceForPrompt(files);
   const prompt = buildEvaluationPrompt(sourceCode, evalFiles, spec);
+  const evalSpec = resolveModel(evalModel);
 
-  const evalModel = cli.defaultEvaluatorModel;
-  log(`  Running evaluation with ${cli.provider}:${evalModel}...`);
+  log(`  Running evaluation with ${evalSpec.backend}:${evalSpec.modelArg}...`);
 
   let stdout: string;
   try {
-    const result = await exec(cli.provider, getEvaluationArgs(cli.provider, evalModel), {
+    const result = await exec(evalSpec.backend, getEvaluationArgs(evalSpec), {
       timeout: 300_000, stdin: prompt,
     });
     stdout = result.stdout;
@@ -398,10 +417,9 @@ async function runEvaluation(
 
 function parseArgs(): RunConfig {
   const args = process.argv.slice(2);
-  let cliProvider: CliProvider = "claude";
-  let evalCliProvider: CliProvider | null = null;
   const specs: string[] = [];
   const models: string[] = [];
+  let evalModel = DEFAULT_EVAL_MODEL;
   let dryRun = false;
 
   for (let i = 0; i < args.length; i++) {
@@ -412,21 +430,8 @@ function parseArgs(): RunConfig {
       case "--model":
         models.push(args[++i]);
         break;
-      case "--cli":
-        cliProvider = args[++i] as CliProvider;
-        if (!CLI_CONFIGS[cliProvider]) {
-          console.error(`Unknown CLI provider: ${cliProvider}`);
-          console.error(`Available: ${Object.keys(CLI_CONFIGS).join(", ")}`);
-          process.exit(1);
-        }
-        break;
-      case "--eval-cli":
-        evalCliProvider = args[++i] as CliProvider;
-        if (!CLI_CONFIGS[evalCliProvider]) {
-          console.error(`Unknown CLI provider: ${evalCliProvider}`);
-          console.error(`Available: ${Object.keys(CLI_CONFIGS).join(", ")}`);
-          process.exit(1);
-        }
+      case "--eval-model":
+        evalModel = args[++i];
         break;
       case "--dry-run":
         dryRun = true;
@@ -435,45 +440,48 @@ function parseArgs(): RunConfig {
         console.log(`Usage: node runner/run.ts [options]
 
 Options:
-  --spec <id>            Spec to run (repeatable). Default: all specs.
-  --model <name>         Model to test (repeatable). Default depends on --cli.
-  --cli <provider>       CLI for implementation: "claude" (default) or "copilot".
-  --eval-cli <provider>  CLI for evaluation. Default: "claude" (for consistency).
-  --dry-run              Show what would run without executing.
-  --help                 Show this help.
+  --spec <id>          Spec to run (repeatable). Default: all specs.
+  --model <name>       Model to test (repeatable). Default: ${DEFAULT_MODELS.join(", ")}.
+                       CLI backend is deduced from the model name.
+  --eval-model <name>  Model for evaluation. Default: ${DEFAULT_EVAL_MODEL}.
+  --dry-run            Show what would run without executing.
+  --help               Show this help.
+
+Available models:
+  ${Object.entries(MODEL_REGISTRY).map(([name, spec]) => `${name.padEnd(20)} (${spec.backend})`).join("\n  ")}
 
 Examples:
   node runner/run.ts
   node runner/run.ts --spec 001-event-registration-form --model sonnet
-  node runner/run.ts --cli copilot --model gpt-4.1
-  node runner/run.ts --cli copilot --model gpt-4.1 --eval-cli claude
+  node runner/run.ts --model gpt-4.1
+  node runner/run.ts --model gpt-4.1 --model sonnet --model gemini-3-pro-preview
 `);
         process.exit(0);
     }
   }
 
-  const cli = CLI_CONFIGS[cliProvider];
-  const evalCli = CLI_CONFIGS[evalCliProvider ?? "claude"];
+  // Validate all models upfront
+  for (const m of models) resolveModel(m);
+  resolveModel(evalModel);
 
   return {
     specs: specs.length > 0 ? specs : listSpecs(),
-    models: models.length > 0 ? models : cli.defaultModels,
-    cli,
-    evalCli,
+    models: models.length > 0 ? models : DEFAULT_MODELS,
+    evalModel,
     dryRun,
   };
 }
 
-async function runSingle(specId: string, model: string, cli: CliConfig, evalCli: CliConfig): Promise<RunResult> {
+async function runSingle(specId: string, model: string, evalModel: string): Promise<RunResult> {
   const timestamp = new Date().toISOString();
-  log(`Starting: spec=${specId} model=${model} cli=${cli.provider}`);
+  log(`Starting: spec=${specId} model=${model}`);
 
   // Setup working directory
   const workDir = setupWorkDir(specId, model);
   log(`  Work dir: ${workDir}`);
 
   // Phase 1: Implementation
-  const impl = await runImplementation(specId, model, workDir, cli);
+  const impl = await runImplementation(specId, model, workDir);
 
   if (impl.error || Object.keys(impl.files).length === 0) {
     return {
@@ -489,7 +497,7 @@ async function runSingle(specId: string, model: string, cli: CliConfig, evalCli:
   }
 
   // Phase 2: Evaluation
-  const eval_ = await runEvaluation(specId, impl.files, evalCli);
+  const eval_ = await runEvaluation(specId, impl.files, evalModel);
 
   return {
     spec: specId,
@@ -522,9 +530,9 @@ async function main(): Promise<void> {
 
   console.log(`\nReact Profession Bench`);
   console.log(`=====================`);
-  console.log(`CLI:    ${config.cli.provider} (eval: ${config.evalCli.provider}:${config.evalCli.defaultEvaluatorModel})`);
   console.log(`Specs:  ${config.specs.join(", ")}`);
   console.log(`Models: ${config.models.join(", ")}`);
+  console.log(`Eval:   ${config.evalModel}`);
   console.log(`Total runs: ${matrix.length}`);
   console.log();
 
@@ -542,7 +550,7 @@ async function main(): Promise<void> {
   const results: RunResult[] = [];
 
   for (const { spec, model } of matrix) {
-    const result = await runSingle(spec, model, config.cli, config.evalCli);
+    const result = await runSingle(spec, model, config.evalModel);
     results.push(result);
     console.log();
   }
