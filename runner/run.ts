@@ -11,15 +11,75 @@ const EVALUATION_DIR = join(ROOT, "evaluation");
 const RESULTS_DIR = join(ROOT, "results");
 const SCORES_DIR = join(ROOT, "scores");
 
-const DEFAULT_MODELS = ["sonnet", "opus", "haiku"];
-const EVALUATOR_MODEL = "sonnet";
 const MAX_BUDGET_USD = "5";
+
+// --- CLI Providers ---
+
+type CliProvider = "claude" | "copilot";
+
+interface CliConfig {
+  provider: CliProvider;
+  defaultModels: string[];
+  defaultEvaluatorModel: string;
+}
+
+const CLI_CONFIGS: Record<CliProvider, CliConfig> = {
+  claude: {
+    provider: "claude",
+    defaultModels: ["sonnet", "opus", "haiku"],
+    defaultEvaluatorModel: "sonnet",
+  },
+  copilot: {
+    provider: "copilot",
+    defaultModels: ["gpt-4.1"],
+    defaultEvaluatorModel: "gpt-4.1",
+  },
+};
+
+function getImplementationArgs(provider: CliProvider, model: string): string[] {
+  switch (provider) {
+    case "claude":
+      return [
+        "--print",
+        "--model", model,
+        "--permission-mode", "bypassPermissions",
+        "--max-budget-usd", MAX_BUDGET_USD,
+        "--no-session-persistence",
+        "--allowedTools", "Read", "Write", "Edit", "Bash", "Glob", "Grep",
+      ];
+    case "copilot":
+      return [
+        "--model", model,
+        "--allow-all",
+      ];
+  }
+}
+
+function getEvaluationArgs(provider: CliProvider, model: string): string[] {
+  switch (provider) {
+    case "claude":
+      return [
+        "--print",
+        "--model", model,
+        "--max-budget-usd", "1",
+        "--no-session-persistence",
+        "--tools", "",
+      ];
+    case "copilot":
+      return [
+        "--model", model,
+        "--allow-all",
+      ];
+  }
+}
 
 // --- Types ---
 
 interface RunConfig {
   specs: string[];     // e.g. ["001-event-registration-form"]
   models: string[];    // e.g. ["sonnet", "opus"]
+  cli: CliConfig;
+  evalCli: CliConfig;  // evaluator CLI (defaults to claude for consistency)
   dryRun: boolean;
 }
 
@@ -211,21 +271,16 @@ ${spec.dataModel}
 - Follow the spec precisely.`;
 }
 
-async function runImplementation(specId: string, model: string, workDir: string): Promise<{ files: Record<string, string>; compiles: boolean; error: string | null }> {
+async function runImplementation(specId: string, model: string, workDir: string, cli: CliConfig): Promise<{ files: Record<string, string>; compiles: boolean; error: string | null }> {
   const spec = readSpecFiles(specId);
   const prompt = buildImplementationPrompt(spec);
 
-  log(`  Running implementation with model=${model}...`);
+  log(`  Running implementation with ${cli.provider}:${model}...`);
 
   try {
-    await exec("claude", [
-      "--print",
-      "--model", model,
-      "--permission-mode", "bypassPermissions",
-      "--max-budget-usd", MAX_BUDGET_USD,
-      "--no-session-persistence",
-      "--allowedTools", "Read", "Write", "Edit", "Bash", "Glob", "Grep",
-    ], { cwd: workDir, timeout: 1_800_000, stdin: prompt });
+    await exec(cli.provider, getImplementationArgs(cli.provider, model), {
+      cwd: workDir, timeout: 1_800_000, stdin: prompt,
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log(`  Implementation failed: ${msg.slice(0, 200)}`);
@@ -300,23 +355,21 @@ Respond with ONLY a JSON object (no markdown fences, no commentary) in this exac
 async function runEvaluation(
   specId: string,
   files: Record<string, string>,
+  cli: CliConfig,
 ): Promise<{ result: EvaluationResult | null; error: string | null }> {
   const spec = readSpecFiles(specId);
   const evalFiles = readEvaluationFiles(specId);
   const sourceCode = formatSourceForPrompt(files);
   const prompt = buildEvaluationPrompt(sourceCode, evalFiles, spec);
 
-  log(`  Running evaluation with model=${EVALUATOR_MODEL}...`);
+  const evalModel = cli.defaultEvaluatorModel;
+  log(`  Running evaluation with ${cli.provider}:${evalModel}...`);
 
   let stdout: string;
   try {
-    const result = await exec("claude", [
-      "--print",
-      "--model", EVALUATOR_MODEL,
-      "--max-budget-usd", "1",
-      "--no-session-persistence",
-      "--tools", "",
-    ], { timeout: 300_000, stdin: prompt });
+    const result = await exec(cli.provider, getEvaluationArgs(cli.provider, evalModel), {
+      timeout: 300_000, stdin: prompt,
+    });
     stdout = result.stdout;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -345,57 +398,82 @@ async function runEvaluation(
 
 function parseArgs(): RunConfig {
   const args = process.argv.slice(2);
-  const config: RunConfig = {
-    specs: [],
-    models: [],
-    dryRun: false,
-  };
+  let cliProvider: CliProvider = "claude";
+  let evalCliProvider: CliProvider | null = null;
+  const specs: string[] = [];
+  const models: string[] = [];
+  let dryRun = false;
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
       case "--spec":
-        config.specs.push(args[++i]);
+        specs.push(args[++i]);
         break;
       case "--model":
-        config.models.push(args[++i]);
+        models.push(args[++i]);
+        break;
+      case "--cli":
+        cliProvider = args[++i] as CliProvider;
+        if (!CLI_CONFIGS[cliProvider]) {
+          console.error(`Unknown CLI provider: ${cliProvider}`);
+          console.error(`Available: ${Object.keys(CLI_CONFIGS).join(", ")}`);
+          process.exit(1);
+        }
+        break;
+      case "--eval-cli":
+        evalCliProvider = args[++i] as CliProvider;
+        if (!CLI_CONFIGS[evalCliProvider]) {
+          console.error(`Unknown CLI provider: ${evalCliProvider}`);
+          console.error(`Available: ${Object.keys(CLI_CONFIGS).join(", ")}`);
+          process.exit(1);
+        }
         break;
       case "--dry-run":
-        config.dryRun = true;
+        dryRun = true;
         break;
       case "--help":
         console.log(`Usage: node runner/run.ts [options]
 
 Options:
-  --spec <id>     Spec to run (repeatable). Default: all specs.
-  --model <name>  Model to test (repeatable). Default: ${DEFAULT_MODELS.join(", ")}.
-  --dry-run       Show what would run without executing.
-  --help          Show this help.
+  --spec <id>            Spec to run (repeatable). Default: all specs.
+  --model <name>         Model to test (repeatable). Default depends on --cli.
+  --cli <provider>       CLI for implementation: "claude" (default) or "copilot".
+  --eval-cli <provider>  CLI for evaluation. Default: "claude" (for consistency).
+  --dry-run              Show what would run without executing.
+  --help                 Show this help.
 
 Examples:
   node runner/run.ts
   node runner/run.ts --spec 001-event-registration-form --model sonnet
-  node runner/run.ts --model sonnet --model opus
+  node runner/run.ts --cli copilot --model gpt-4.1
+  node runner/run.ts --cli copilot --model gpt-4.1 --eval-cli claude
 `);
         process.exit(0);
     }
   }
 
-  if (config.specs.length === 0) config.specs = listSpecs();
-  if (config.models.length === 0) config.models = DEFAULT_MODELS;
+  const cli = CLI_CONFIGS[cliProvider];
+  const evalCli = CLI_CONFIGS[evalCliProvider ?? "claude"];
 
-  return config;
+  return {
+    specs: specs.length > 0 ? specs : listSpecs(),
+    models: models.length > 0 ? models : cli.defaultModels,
+    cli,
+    evalCli,
+    dryRun,
+  };
 }
 
-async function runSingle(specId: string, model: string): Promise<RunResult> {
+async function runSingle(specId: string, model: string, cli: CliConfig, evalCli: CliConfig): Promise<RunResult> {
   const timestamp = new Date().toISOString();
-  log(`Starting: spec=${specId} model=${model}`);
+  log(`Starting: spec=${specId} model=${model} cli=${cli.provider}`);
 
   // Setup working directory
   const workDir = setupWorkDir(specId, model);
   log(`  Work dir: ${workDir}`);
 
   // Phase 1: Implementation
-  const impl = await runImplementation(specId, model, workDir);
+  const impl = await runImplementation(specId, model, workDir, cli);
 
   if (impl.error || Object.keys(impl.files).length === 0) {
     return {
@@ -411,7 +489,7 @@ async function runSingle(specId: string, model: string): Promise<RunResult> {
   }
 
   // Phase 2: Evaluation
-  const eval_ = await runEvaluation(specId, impl.files);
+  const eval_ = await runEvaluation(specId, impl.files, evalCli);
 
   return {
     spec: specId,
@@ -444,6 +522,7 @@ async function main(): Promise<void> {
 
   console.log(`\nReact Profession Bench`);
   console.log(`=====================`);
+  console.log(`CLI:    ${config.cli.provider} (eval: ${config.evalCli.provider}:${config.evalCli.defaultEvaluatorModel})`);
   console.log(`Specs:  ${config.specs.join(", ")}`);
   console.log(`Models: ${config.models.join(", ")}`);
   console.log(`Total runs: ${matrix.length}`);
@@ -463,7 +542,7 @@ async function main(): Promise<void> {
   const results: RunResult[] = [];
 
   for (const { spec, model } of matrix) {
-    const result = await runSingle(spec, model);
+    const result = await runSingle(spec, model, config.cli, config.evalCli);
     results.push(result);
     console.log();
   }
