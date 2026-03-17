@@ -1,81 +1,97 @@
 [
   {
-    "spec": "002-data-dashboard",
-    "model": "gpt-4.1",
-    "timestamp": "2026-03-17T01:41:17.192Z",
+    "spec": "001-event-registration-form",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-17T02:27:26.222Z",
     "compiles": true,
-    "weighted_score": 56,
+    "weighted_score": 88,
     "categories": {
-      "state_architecture": 3,
-      "effect_hygiene": 3,
+      "state_architecture": 5,
+      "effect_hygiene": 5,
       "component_design": 3,
-      "typescript_quality": 4,
-      "performance_awareness": 2,
-      "accessibility_semantics": 2
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-17T02:33:43.507Z",
+    "compiles": true,
+    "weighted_score": 74,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 4,
+      "component_design": 2,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
     },
     "error": null
   },
   {
     "spec": "003-quiz-builder",
-    "model": "gpt-4.1",
-    "timestamp": "2026-03-17T01:44:50.836Z",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-17T02:39:31.858Z",
     "compiles": true,
-    "weighted_score": 20,
+    "weighted_score": 70,
     "categories": {
-      "state_architecture": 1,
-      "effect_hygiene": 1,
-      "component_design": 1,
-      "typescript_quality": 1,
-      "performance_awareness": 1,
-      "accessibility_semantics": 1
+      "state_architecture": 4,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
     },
     "error": null
   },
   {
     "spec": "004-user-profile-browser",
-    "model": "gpt-4.1",
-    "timestamp": "2026-03-17T01:51:11.515Z",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-17T02:45:44.811Z",
     "compiles": true,
-    "weighted_score": 20,
+    "weighted_score": 74,
     "categories": {
-      "state_architecture": 1,
-      "effect_hygiene": 1,
-      "component_design": 1,
-      "typescript_quality": 1,
-      "performance_awareness": 1,
-      "accessibility_semantics": 1
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
     },
     "error": null
   },
   {
     "spec": "005-system-status-dashboard",
-    "model": "gpt-4.1",
-    "timestamp": "2026-03-17T02:04:58.157Z",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-17T02:53:28.476Z",
     "compiles": true,
-    "weighted_score": 20,
+    "weighted_score": 59,
     "categories": {
-      "state_architecture": 1,
-      "effect_hygiene": 1,
-      "component_design": 1,
-      "typescript_quality": 1,
-      "performance_awareness": 1,
-      "accessibility_semantics": 1
+      "state_architecture": 4,
+      "effect_hygiene": 2,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
     },
     "error": null
   },
   {
     "spec": "006-notification-activity-feed",
-    "model": "gpt-4.1",
-    "timestamp": "2026-03-17T02:18:04.582Z",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-17T02:57:27.087Z",
     "compiles": true,
-    "weighted_score": 55,
+    "weighted_score": 48,
     "categories": {
-      "state_architecture": 4,
+      "state_architecture": 3,
       "effect_hygiene": 2,
-      "component_design": 4,
+      "component_design": 2,
       "typescript_quality": 4,
       "performance_awareness": 3,
-      "accessibility_semantics": 2
+      "accessibility_semantics": 3
     },
     "error": null
   }
