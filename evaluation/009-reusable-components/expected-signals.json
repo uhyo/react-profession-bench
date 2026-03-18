@@ -1,0 +1,128 @@
+{
+  "spec_id": "009",
+  "spec_name": "Task Board with Reusable Components",
+  "rubric_weights": {
+    "state_architecture": 10,
+    "effect_hygiene": 20,
+    "component_design": 30,
+    "typescript_quality": 20,
+    "performance_awareness": 5,
+    "accessibility_semantics": 15
+  },
+  "primary_focus": "Reusable component design: ActionButton with useTransition + action prop, generic ToggleGroup, reusable ConfirmDialog. TypeScript generics for reusable components.",
+  "action_button_signals": [
+    {
+      "signal": "ActionButton component with action prop and internal useTransition",
+      "trigger": "Requirements 5, 8, 17, 20: pending button behavior as a single reusable component",
+      "correct": "A reusable button component that accepts an `action` (or `clickAction`) prop typed as `() => Promise<void>` instead of the usual `onClick`. Internally, the component wraps the action in `useTransition` (via `startTransition(() => action())`) or uses the action as a form action. It reads `isPending` from the transition to show the pending label and disable the button. Each button instance has its own independent transition state — clicking 'Start' on task A does not affect 'Delete' on task B.",
+      "why_action_prop": "React 19's documentation recommends that components accepting async callbacks use a prop named 'action' (or similar) to signal that the callback will be wrapped in a transition/action. This convention communicates the async contract to consumers — they know the callback can be async and the component handles the pending state automatically.",
+      "anti_pattern_tier1": "Each action button manages its own isPending useState + try/catch. The pending logic is duplicated across every button usage. This works but violates DRY and the spec requirement for a single reusable component.",
+      "anti_pattern_tier2": "A reusable button with onClick + manual isPending state (useState + setState(true) before the call, setState(false) after). This is reusable but misses useTransition — the pending state is handled imperatively instead of declaratively. useTransition also provides better integration with React's concurrent features (the pending update is a transition, so it doesn't block urgent updates).",
+      "anti_pattern_tier3": "A reusable button with onClick that accepts a sync callback. The consumer wraps the async logic and passes isPending as a separate prop. The component is not self-contained — the pending state management leaks to every call site."
+    }
+  ],
+  "toggle_group_signals": [
+    {
+      "signal": "Generic ToggleGroup component",
+      "trigger": "Requirements 11-12, 21: same toggle pattern for both status and priority filters",
+      "correct": "A single reusable ToggleGroup<T> component with generic type parameter. Props: options: { value: T; label: string }[], value: T, onChange: (value: T) => void. The component renders a group of buttons and manages the active state visually. Used twice — once for status filter, once for priority filter — with different option types.",
+      "anti_pattern_tier1": "Two separate filter components (StatusFilter, PriorityFilter) with duplicated toggle logic. Violates the spec requirement for a single reusable component.",
+      "anti_pattern_tier2": "A reusable component but typed with string instead of a generic — loses type safety at the call site (onChange receives string instead of TaskStatus | 'all')."
+    }
+  ],
+  "confirm_dialog_signals": [
+    {
+      "signal": "Reusable ConfirmDialog component",
+      "trigger": "Requirements 15-17, 22: confirmation dialog reusable and not task-specific",
+      "correct": "A generic ConfirmDialog component with props: open, title, message, confirmLabel, onConfirm (async action), onCancel. Uses the <dialog> element for native modal behavior. The confirm button is an ActionButton (reusing the same pending button pattern). Closing via Escape or backdrop click calls onCancel.",
+      "anti_pattern_tier1": "Delete confirmation logic hardcoded inline in the task component. Not reusable.",
+      "anti_pattern_tier2": "A reusable dialog but implemented as a div overlay without <dialog>. Requires manual focus trapping and Escape handling."
+    }
+  ],
+  "form_submission_signals": [
+    {
+      "signal": "Form submission via native form or action pattern",
+      "trigger": "Requirements 8-10: create task form with pending button and Enter-to-submit",
+      "correct": "The creation form uses a <form> element. The ActionButton component works as a submit button within the form. Enter in the title input naturally submits the form. The action (creating a task) is async and the button shows pending state during the API call.",
+      "anti_pattern_tier1": "onClick on the button + onKeyDown on the input checking for Enter. Reimplements native form behavior.",
+      "anti_pattern_tier2": "<form onSubmit> with e.preventDefault() + manual isPending state. Works but doesn't leverage the action button pattern."
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "filteredTasks",
+      "trigger": "Requirements 11-14: tasks filtered by status and priority",
+      "correct": "Computed via useMemo from tasks array, statusFilter, and priorityFilter",
+      "anti_pattern": "Stored as useState and synced via useEffect"
+    },
+    {
+      "name": "emptyStateMessage",
+      "trigger": "Requirements 18-19: different messages for no matches vs no tasks",
+      "correct": "Derived from tasks.length and filteredTasks.length during render",
+      "anti_pattern": "Stored as state"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "Fetch initial tasks on mount",
+      "expected_pattern": "useEffect with empty dependency array calling fetchTasks(), or Suspense-based approach"
+    }
+  ],
+  "typescript_signals": [
+    {
+      "signal": "Generic ToggleGroup<T>",
+      "correct": "ToggleGroup<T extends string> with typed options and onChange callback. Call sites get type-safe values: ToggleGroup<TaskStatus | 'all'>",
+      "anti_pattern": "ToggleGroup with options: { value: string; label: string }[] — loses type safety"
+    },
+    {
+      "signal": "ActionButton action prop typed as async function",
+      "correct": "action: () => Promise<void> or action: () => void | Promise<void> — clearly communicates async intent",
+      "anti_pattern": "onClick: () => void — consumers must handle isPending themselves"
+    },
+    {
+      "signal": "ConfirmDialog onConfirm typed as async",
+      "correct": "onConfirm: () => Promise<void> — aligns with ActionButton's action prop pattern",
+      "anti_pattern": "onConfirm: () => void with separate isPending prop"
+    }
+  ],
+  "accessibility_signals": [
+    {
+      "signal": "ActionButton announces pending state",
+      "correct": "Button has aria-busy={isPending} during pending state. Label change ('Starting...' etc.) is sufficient for screen readers if the button text updates.",
+      "anti_pattern": "No indication of pending state for assistive technology"
+    },
+    {
+      "signal": "ConfirmDialog uses <dialog>",
+      "correct": "<dialog> element with showModal(). Browser handles focus trapping, Escape key, and backdrop. aria-labelledby points to the dialog title.",
+      "anti_pattern": "Div overlay with manual focus trap implementation"
+    },
+    {
+      "signal": "ToggleGroup uses appropriate ARIA",
+      "correct": "role='group' with aria-label, each button has aria-pressed={isSelected}",
+      "anti_pattern": "No ARIA — visually styled buttons with no programmatic indication of selection"
+    },
+    {
+      "signal": "Error notifications announced",
+      "correct": "Error notification has role='alert' or aria-live='assertive'",
+      "anti_pattern": "Error shown visually only"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 6,
+    "maximum_reasonable": 12,
+    "expected_components": [
+      "App (root)",
+      "ActionButton (reusable pending button with action prop)",
+      "ToggleGroup<T> (reusable generic toggle button group)",
+      "ConfirmDialog (reusable modal confirmation dialog)",
+      "TaskList (list of tasks with filtering)",
+      "TaskItem (individual task row with action buttons)",
+      "CreateTaskForm (form with ActionButton submit)"
+    ],
+    "optional_but_good": [
+      "StatusBadge (colored badge for task status)",
+      "PriorityBadge (colored badge for task priority)",
+      "ErrorNotification (auto-dismissing error toast)"
+    ]
+  }
+}

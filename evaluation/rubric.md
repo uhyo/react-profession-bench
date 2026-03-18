@@ -215,14 +215,14 @@ Multiply each score by its weight, sum, divide by 5, multiply by 20. A perfect s
 
 ### Per-Spec Weight Profiles
 
-| Category | 001 | 002 | 003 | 004 | 005 | 006 | 007 | 008 | 010 | 011 | 012 | 013 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| State Architecture | **25** | 10 | 15 | 15 | 15 | 15 | 10 | 15 | 15 | 10 | **20** | **30** |
-| Effect Hygiene | **20** | 5 | 10 | **25** | **30** | **30** | **25** | **25** | 5 | 15 | 15 | 10 |
-| Component Design | 20 | **25** | 15 | 15 | 15 | 15 | 10 | 10 | **20** | **25** | **20** | **20** |
-| TypeScript Quality | 15 | 20 | **25** | 10 | 10 | 15 | 10 | 15 | 15 | 15 | 15 | **20** |
-| Performance Awareness | 10 | **30** | 5 | 15 | 10 | 5 | **25** | 5 | 15 | 10 | **20** | 10 |
-| Accessibility & Semantics | 10 | 10 | **30** | **20** | 10 | 10 | **20** | **30** | **30** | **25** | 10 | 10 |
+| Category | 001 | 002 | 003 | 004 | 005 | 006 | 007 | 008 | 009 | 010 | 011 | 012 | 013 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| State Architecture | **25** | 10 | 15 | 15 | 15 | 15 | 10 | 15 | 10 | 15 | 10 | **20** | **30** |
+| Effect Hygiene | **20** | 5 | 10 | **25** | **30** | **30** | **25** | **25** | **20** | 5 | **20** | 15 | 10 |
+| Component Design | 20 | **25** | 15 | 15 | 15 | 15 | 10 | 10 | **30** | **20** | **25** | **20** | **20** |
+| TypeScript Quality | 15 | 20 | **25** | 10 | 10 | 15 | 10 | 15 | **20** | 15 | 15 | 15 | **20** |
+| Performance Awareness | 10 | **30** | 5 | 15 | 10 | 5 | **25** | 5 | 5 | 15 | 10 | **20** | 10 |
+| Accessibility & Semantics | 10 | 10 | **30** | **20** | 10 | 10 | **20** | **30** | 15 | **30** | **20** | 10 | 10 |
 
 Each spec emphasizes different categories (bold = primary focus), ensuring the benchmark collectively covers all six dimensions as primary measurement targets.
 
@@ -237,6 +237,9 @@ Each spec emphasizes different categories (bold = primary focus), ensuring the b
 - **Spec 011** measures ref-as-prop — in React 19, `ref` is a regular prop, no `forwardRef` wrapper needed. Using `forwardRef` is the pre-React 19 pattern.
 - **Spec 012** measures `React.lazy` + `Suspense` for code splitting — editor components loaded on demand.
 - **Spec 013** measures `<Context>` (React 19 shorthand for `<Context.Provider>`), `useReducer` for undo/redo state machines, and context splitting to avoid unnecessary re-renders.
+
+**Reusable component design:**
+- **Spec 009** measures the `action` prop pattern — a reusable button component that accepts an async `action` callback (not `onClick`) and internally uses `useTransition` to manage pending state. This convention, recommended by React 19 docs, communicates that the component handles async lifecycle automatically. Also tests generic `ToggleGroup<T>` and reusable `ConfirmDialog`.
 
 **Platform API awareness:**
 - **Spec 011** measures awareness of the HTML Popover API (`popover` attribute) and CSS Anchor Positioning. These platform-native APIs eliminate the need for `createPortal`, `getBoundingClientRect`, and multiple `useEffect` hooks for click-outside/Escape/scroll handling. Using the platform API is the highest-scoring approach; the `createPortal` + ref + effect approach is functional but reimplements what the browser provides natively.

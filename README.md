@@ -104,6 +104,9 @@ react-profession-bench/
 │   ├── 008-form-actions/
 │   │   ├── spec.md
 │   │   └── data-model.ts           # Types + simulated survey submission API
+│   ├── 009-reusable-components/
+│   │   ├── spec.md
+│   │   └── data-model.ts           # Task types + simulated CRUD API
 │   ├── 010-tree-file-explorer/
 │   │   ├── spec.md
 │   │   └── data-model.ts           # Tree node discriminated union + file tree data
@@ -142,6 +145,8 @@ react-profession-bench/
 │   ├── 007-sns-feed/
 │   │   └── expected-signals.json
 │   ├── 008-form-actions/
+│   │   └── expected-signals.json
+│   ├── 009-reusable-components/
 │   │   └── expected-signals.json
 │   ├── 010-tree-file-explorer/
 │   │   └── expected-signals.json
@@ -182,6 +187,7 @@ Each spec has its own rubric weight profile, emphasizing different React skills.
 | 006 | Notification Activity Feed | Effect Hygiene | useEffectEvent for stable subscriptions with changing settings, configurable auto-save with latest-value reads, toast management, pause/resume without reconnecting |
 | 007 | SNS Post Feed | Effect Hygiene, Performance | useOptimistic for instant like feedback, Activity component for offscreen deprioritization, memoized text parsing, semantic `<article>` elements |
 | 008 | Multi-Section Survey Form | Effect Hygiene, Accessibility | `<form action={fn}>` pattern, useActionState, useFormStatus, native Enter-to-submit, `<fieldset>`/`<legend>` grouping |
+| 009 | Task Board (Reusable Components) | Component Design, Effect Hygiene, TypeScript | ActionButton with `action` prop + useTransition, generic ToggleGroup`<T>`, reusable ConfirmDialog with `<dialog>` |
 | 010 | Tree View File Explorer | Accessibility, Component Design | aria-tree/treeitem pattern, roving tabindex, recursive component rendering, discriminated union for nodes |
 | 011 | Tooltip and Popover System | Component Design, Effect Hygiene, Accessibility | HTML Popover API + CSS Anchor Positioning (best), createPortal + ref (fallback), ref-as-prop (React 19), reusable component API |
 | 012 | Multi-Tab Document Editor | State Architecture, Performance | React.lazy + Suspense for code splitting, preserving inactive tab state, tab management, memoized Markdown preview |
