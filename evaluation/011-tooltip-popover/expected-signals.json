@@ -1,0 +1,116 @@
+{
+  "spec_id": "011",
+  "spec_name": "Tooltip and Popover System",
+  "rubric_weights": {
+    "state_architecture": 10,
+    "effect_hygiene": 15,
+    "component_design": 25,
+    "typescript_quality": 15,
+    "performance_awareness": 10,
+    "accessibility_semantics": 25
+  },
+  "primary_focus": "createPortal for rendering outside DOM hierarchy, ref-as-prop (React 19, no forwardRef), reusable component API design",
+  "portal_signals": [
+    {
+      "signal": "createPortal for tooltips and popovers",
+      "trigger": "Requirements 9, 14: render outside the table's DOM hierarchy",
+      "correct": "Tooltip and popover content is rendered via createPortal to document.body or a dedicated portal container. This avoids clipping by overflow:hidden or z-index stacking context issues in the table.",
+      "anti_pattern_tier1": "Rendering the tooltip/popover inline as a sibling of the trigger element inside the table. This is clipped by the table's overflow and stacking context.",
+      "anti_pattern_tier2": "Using CSS position:fixed to escape the stacking context. This works visually but the tooltip is still in the table's DOM — accessibility tools may not present it correctly, and event bubbling passes through the table."
+    }
+  ],
+  "ref_signals": [
+    {
+      "signal": "ref-as-prop (React 19, no forwardRef)",
+      "trigger": "Requirement 18: reusable tooltip component that wraps a trigger element",
+      "correct": "The tooltip/popover component accepts a ref prop to measure the trigger element's position. In React 19, ref is a regular prop — the component just declares ref in its props interface. No forwardRef wrapper needed.",
+      "anti_pattern_tier1": "No ref usage — tooltip positioned with CSS relative to a wrapper div, which breaks when the trigger element varies in size or the page scrolls.",
+      "anti_pattern_tier2": "Using React.forwardRef to pass the ref. This works but is the pre-React 19 pattern. In React 19, forwardRef is unnecessary and adds complexity."
+    },
+    {
+      "signal": "useRef for DOM measurement (getBoundingClientRect)",
+      "trigger": "Requirements 8, 13: position tooltips/popovers relative to trigger, flip if overflowing viewport",
+      "correct": "Use ref.current.getBoundingClientRect() to get the trigger's position, then calculate tooltip position. Check against window.innerHeight/innerWidth to determine if flipping is needed.",
+      "anti_pattern": "Hardcoded positioning or CSS-only positioning that doesn't handle viewport overflow"
+    }
+  ],
+  "component_design_signals": [
+    {
+      "signal": "Reusable Tooltip/Popover component",
+      "trigger": "Requirement 18: must be a reusable component, not hardcoded",
+      "correct": "A generic Tooltip component with props like: children (trigger element), content (tooltip content), placement ('top' | 'bottom'), delay, etc. Similarly a generic Popover component. Both handle portal rendering, positioning, and lifecycle internally.",
+      "anti_pattern": "Tooltip logic inlined in the table cell components. Works for this table but not reusable."
+    },
+    {
+      "signal": "Separation of trigger and overlay logic",
+      "correct": "The tooltip/popover component manages its own show/hide state, delay timers, and positioning. The consuming component just wraps its trigger element.",
+      "anti_pattern": "The table component manages tooltip visibility state and passes it down"
+    }
+  ],
+  "effect_hygiene_signals": [
+    {
+      "signal": "Cleanup for hover delay timers",
+      "trigger": "Requirement 6: 300ms hover delay",
+      "correct": "setTimeout for the delay, cleared in a cleanup function (onMouseLeave or useEffect cleanup). No lingering timers.",
+      "anti_pattern": "Timer not cleared on mouse leave — tooltip appears after the user has already moved away"
+    },
+    {
+      "signal": "Escape key and click-outside handling",
+      "trigger": "Requirement 15: Escape and click-outside close popover",
+      "correct": "useEffect adding document-level keydown and click listeners with proper cleanup on unmount or when popover closes",
+      "anti_pattern": "Global listeners added but never removed"
+    }
+  ],
+  "accessibility_signals": [
+    {
+      "signal": "aria-describedby for tooltips",
+      "correct": "Trigger element has aria-describedby pointing to the tooltip's id. Tooltip has role='tooltip'.",
+      "anti_pattern": "No ARIA linking — tooltip is visual-only"
+    },
+    {
+      "signal": "Popover menu keyboard navigation",
+      "correct": "Popover menu items are focusable. Arrow keys move between items. Enter selects. Escape closes and returns focus to the trigger button.",
+      "anti_pattern": "Menu items only clickable, not keyboard-navigable"
+    },
+    {
+      "signal": "Table uses proper <table> semantics",
+      "correct": "<table> with <thead>/<tbody>, <th scope='col'> for headers, sortable headers have aria-sort",
+      "anti_pattern": "div-based grid layout instead of <table>"
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "sortedUsers",
+      "trigger": "Requirement 4: sortable columns",
+      "correct": "Computed via useMemo from USERS, sortColumn, and sortDirection",
+      "anti_pattern": "Stored as useState and synced via useEffect"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "Document-level event listeners for click-outside and Escape",
+      "expected_pattern": "useEffect with addEventListener/removeEventListener and cleanup"
+    },
+    {
+      "purpose": "Recalculate tooltip/popover position on scroll or resize",
+      "expected_pattern": "useEffect with scroll/resize listeners and cleanup"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 5,
+    "maximum_reasonable": 12,
+    "expected_components": [
+      "App (root)",
+      "UserTable (table with sorting)",
+      "Tooltip (reusable, portal-based)",
+      "Popover (reusable, portal-based)",
+      "PopoverMenu (menu items within popover)",
+      "DetailPanel (selected user details)"
+    ],
+    "optional_but_good": [
+      "TableHeader (sortable header cell)",
+      "UserRow (individual table row)",
+      "Portal (generic portal wrapper)"
+    ]
+  }
+}

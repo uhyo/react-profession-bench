@@ -1,0 +1,100 @@
+{
+  "spec_id": "010",
+  "spec_name": "Tree View File Explorer",
+  "rubric_weights": {
+    "state_architecture": 15,
+    "effect_hygiene": 5,
+    "component_design": 20,
+    "typescript_quality": 15,
+    "performance_awareness": 15,
+    "accessibility_semantics": 30
+  },
+  "primary_focus": "aria-tree pattern with keyboard navigation, recursive component rendering, discriminated union for tree nodes",
+  "accessibility_signals": [
+    {
+      "signal": "aria-tree / aria-treeitem pattern",
+      "trigger": "Requirements 7-8: full keyboard navigation",
+      "correct": "The tree container has role='tree'. Each item has role='treeitem'. Directories have aria-expanded. Items have aria-selected for the focused/selected item. Nesting uses role='group' on child lists.",
+      "anti_pattern_tier1": "No ARIA roles at all — just div/span with onClick and onKeyDown. Screen readers cannot parse the tree structure.",
+      "anti_pattern_tier2": "Partial ARIA — role='tree' on the container but missing aria-expanded, aria-selected, or role='group' on nested lists. Keyboard works but the structure isn't communicated to assistive technology."
+    },
+    {
+      "signal": "Roving tabindex for keyboard focus",
+      "trigger": "Requirement 8: only one item has focus at a time",
+      "correct": "Only the focused treeitem has tabindex='0'; all others have tabindex='-1'. Arrow keys move focus by updating which item has tabindex='0' and calling .focus(). This is the WAI-ARIA recommended pattern for tree views.",
+      "anti_pattern": "All items have tabindex='0' (user must Tab through every item) or no tabindex at all (tree items are not focusable)"
+    },
+    {
+      "signal": "Home/End keyboard support",
+      "trigger": "Requirement 7: Home goes to first item, End goes to last visible item",
+      "correct": "Home/End keys move focus accordingly",
+      "anti_pattern": "Only arrow keys implemented, Home/End ignored"
+    }
+  ],
+  "component_design_signals": [
+    {
+      "signal": "Recursive TreeNode component",
+      "correct": "A single TreeNode (or TreeItem) component that renders itself recursively for directories. Directories render their children as a list of TreeNode components.",
+      "anti_pattern": "Flattening the tree into a list and using indentation to simulate nesting — loses the semantic tree structure"
+    },
+    {
+      "signal": "Separation of tree logic from rendering",
+      "correct": "A custom hook (e.g., useTreeNavigation) that manages expanded state, focused item, and keyboard navigation. The component handles rendering, the hook handles behavior.",
+      "anti_pattern": "All logic (expand/collapse, keyboard nav, focus management) inline in the render component"
+    }
+  ],
+  "typescript_signals": [
+    {
+      "signal": "Discriminated union narrowing for FileNode vs DirectoryNode",
+      "correct": "switch (node.type) or if (node.type === 'directory') to narrow the union and access type-specific fields (children for directories, content/size for files)",
+      "anti_pattern": "Optional chaining everywhere: node.children?.map(...) without narrowing"
+    }
+  ],
+  "performance_signals": [
+    {
+      "signal": "Memoized tree nodes to prevent re-rendering entire tree on selection change",
+      "correct": "React.memo on TreeNode component so that expanding/collapsing or selecting a file doesn't re-render the entire tree — only the affected subtree",
+      "anti_pattern": "Entire tree re-renders on every state change"
+    },
+    {
+      "signal": "Memoized search filtering",
+      "trigger": "Requirement 11: search filters the tree",
+      "correct": "useMemo on the filtered tree, keyed on search text",
+      "anti_pattern": "Re-filtering the entire tree on every render"
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "filteredTree",
+      "trigger": "Requirement 11: search filters the tree",
+      "correct": "Computed via useMemo from FILE_TREE and search text",
+      "anti_pattern": "Stored as useState and synced via useEffect"
+    },
+    {
+      "name": "visibleItems (for keyboard navigation)",
+      "trigger": "Requirement 7: arrow keys navigate visible items",
+      "correct": "Derived from the tree + expanded state during render or in the keyboard handler",
+      "anti_pattern": "Stored as separate state"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "Focus management for keyboard navigation",
+      "expected_pattern": "useEffect or ref callback to call .focus() when the focused item changes"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 4,
+    "maximum_reasonable": 10,
+    "expected_components": [
+      "App (root)",
+      "TreeView (tree container with role='tree')",
+      "TreeNode / TreeItem (recursive, renders file or directory)",
+      "FilePreview (right panel)"
+    ],
+    "optional_but_good": [
+      "SearchInput",
+      "useTreeNavigation (custom hook for keyboard/focus logic)"
+    ]
+  }
+}

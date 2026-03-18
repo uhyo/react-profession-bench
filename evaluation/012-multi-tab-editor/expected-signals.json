@@ -1,0 +1,100 @@
+{
+  "spec_id": "012",
+  "spec_name": "Multi-Tab Document Editor",
+  "rubric_weights": {
+    "state_architecture": 20,
+    "effect_hygiene": 15,
+    "component_design": 20,
+    "typescript_quality": 15,
+    "performance_awareness": 20,
+    "accessibility_semantics": 10
+  },
+  "primary_focus": "React.lazy + Suspense for code splitting, preserving inactive tab state without remounting, tab management patterns",
+  "lazy_loading_signals": [
+    {
+      "signal": "React.lazy for editor components",
+      "trigger": "Requirement 7: editor loaded on demand, not downloaded until first use",
+      "correct": "Each editor type (PlainTextEditor, MarkdownEditor, JsonEditor) is in a separate file and loaded via React.lazy(() => import('./editors/MarkdownEditor')). The first time a Markdown document is opened, the component is downloaded. Subsequent Markdown documents reuse the already-loaded component.",
+      "anti_pattern_tier1": "All editors statically imported at the top of the file. No code splitting — all editor code is downloaded upfront.",
+      "anti_pattern_tier2": "Dynamic import() called inside useEffect or an event handler, manually managing the loaded component in state. This works but misses React.lazy + Suspense which handles this declaratively."
+    },
+    {
+      "signal": "Suspense boundary for lazy-loaded editors",
+      "trigger": "Requirement 7: show loading indicator while editor loads",
+      "correct": "<Suspense fallback={<LoadingIndicator />}> wrapping the lazy-loaded editor component. The fallback is shown automatically while the chunk downloads.",
+      "anti_pattern": "Manual isLoading state for the editor component"
+    }
+  ],
+  "tab_state_signals": [
+    {
+      "signal": "Preserving inactive tab content without remounting",
+      "trigger": "Requirement 8: switching tabs preserves content and cursor position",
+      "correct": "All open documents' editor components remain mounted but hidden (via CSS display:none or similar). Only the active tab's editor is visible. This preserves React state (textarea value, cursor position) across tab switches without serializing/deserializing.",
+      "acceptable_alternative": "Using the <Activity> component from React to keep inactive tabs mounted at lower priority.",
+      "anti_pattern_tier1": "Conditionally rendering only the active editor (unmounting inactive ones). Content is preserved in state, but cursor position and scroll position are lost on every tab switch.",
+      "anti_pattern_tier2": "Storing content in state and re-mounting the editor on tab switch. Content is preserved but any internal component state (undo history, selection) is lost."
+    }
+  ],
+  "state_architecture_signals": [
+    {
+      "signal": "Document state management",
+      "correct": "Documents are stored in an array or Map in the App/TabManager component. Each document has an id, type, title, and content. The active tab is tracked by document id, not index.",
+      "anti_pattern": "Tracking active tab by array index — breaks when tabs are reordered or removed"
+    },
+    {
+      "signal": "Tab close behavior",
+      "trigger": "Requirement 9: closing active tab activates previous/next",
+      "correct": "Logic to determine the next active tab when closing: previous tab if available, otherwise next, otherwise null. Implemented in the event handler.",
+      "anti_pattern": "useEffect watching the documents array to adjust activeTab — derived from the close event, not a side effect"
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "wordCount / lineCount for plain text editor",
+      "trigger": "Requirement 3: word count and line count",
+      "correct": "Computed from content during render",
+      "anti_pattern": "Stored as separate state"
+    },
+    {
+      "name": "markdownPreviewHtml",
+      "trigger": "Requirement 3: live Markdown preview",
+      "correct": "Computed via useMemo from the markdown content string. Re-parses only when content changes.",
+      "anti_pattern": "Stored as state synced via useEffect, or recomputed on every render without memoization"
+    },
+    {
+      "name": "jsonValid / jsonError",
+      "trigger": "Requirement 3: JSON validation indicator",
+      "correct": "Computed from content during render (try JSON.parse, catch error)",
+      "anti_pattern": "Stored as state synced via useEffect watching content"
+    }
+  ],
+  "legitimate_effect_uses": [],
+  "component_decomposition": {
+    "minimum_reasonable": 5,
+    "maximum_reasonable": 12,
+    "expected_components": [
+      "App (root, tab management)",
+      "TabBar (tab list with close buttons + new document button)",
+      "PlainTextEditor (lazy-loaded)",
+      "MarkdownEditor (lazy-loaded, split view)",
+      "JsonEditor (lazy-loaded, validation + format)"
+    ],
+    "optional_but_good": [
+      "Tab (individual tab component)",
+      "NewDocumentDropdown",
+      "MarkdownPreview (rendered HTML output)"
+    ]
+  },
+  "accessibility_signals": [
+    {
+      "signal": "Tab bar uses tablist/tab ARIA pattern",
+      "correct": "Tab bar has role='tablist', each tab has role='tab' with aria-selected, editor area has role='tabpanel' with aria-labelledby",
+      "anti_pattern": "Buttons or divs without ARIA roles"
+    },
+    {
+      "signal": "Close button has accessible label",
+      "correct": "aria-label='Close {document title}' on the close button",
+      "anti_pattern": "Just '×' with no accessible label"
+    }
+  ]
+}

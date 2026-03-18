@@ -1,0 +1,111 @@
+{
+  "spec_id": "013",
+  "spec_name": "Settings Dashboard with Undo/Redo",
+  "rubric_weights": {
+    "state_architecture": 30,
+    "effect_hygiene": 10,
+    "component_design": 20,
+    "typescript_quality": 20,
+    "performance_awareness": 10,
+    "accessibility_semantics": 10
+  },
+  "primary_focus": "useReducer for complex state with undo/redo history, Context with <Context> (React 19), deriving canUndo/canRedo",
+  "reducer_signals": [
+    {
+      "signal": "useReducer for settings state with undo/redo",
+      "trigger": "Requirements 5-10: every change recorded, undo/redo/reset",
+      "correct": "A reducer that maintains { past: Settings[], present: Settings, future: Settings[] }. Each setting change pushes the current state to past and clears future. Undo pops from past, pushes present to future. Redo pops from future, pushes present to past. Reset pushes current to past and sets present to defaults.",
+      "anti_pattern_tier1": "Multiple useState for past/present/future managed manually. Error-prone and verbose — the reducer pattern is the right abstraction for this state machine.",
+      "anti_pattern_tier2": "useReducer but with action types that don't properly manage the history stack (e.g., undo doesn't push to future, or new changes don't clear future)."
+    },
+    {
+      "signal": "Custom hook extracting undo/redo logic",
+      "correct": "A reusable useUndoReducer or useHistory hook that wraps useReducer and exposes { state, dispatch, undo, redo, canUndo, canRedo, reset }. This hook is agnostic to the Settings type and could be reused for any state.",
+      "anti_pattern": "Undo/redo logic mixed directly into the settings component — not extractable or reusable"
+    }
+  ],
+  "context_signals": [
+    {
+      "signal": "<Context> provider (React 19 syntax, not <Context.Provider>)",
+      "trigger": "Requirement 13: settings accessible without prop drilling through 3+ levels",
+      "correct": "A SettingsContext created with createContext. In React 19, the context is used as the provider directly: <SettingsContext value={settings}>. The old <SettingsContext.Provider value={settings}> syntax still works but is deprecated in favor of the shorter form.",
+      "anti_pattern_tier1": "No context — settings are prop-drilled through 3+ intermediate components that don't use them. The intermediate components re-render unnecessarily on every settings change.",
+      "anti_pattern_tier2": "<SettingsContext.Provider> instead of <SettingsContext>. This works but uses the pre-React 19 verbose syntax. An expert recognizes the shorter form."
+    },
+    {
+      "signal": "Context splitting to avoid unnecessary re-renders",
+      "correct": "Separate contexts for different concerns (e.g., SettingsContext for values, SettingsDispatchContext for the dispatch function). Components that only dispatch (settings panel) don't re-render when settings values change. Components that only read (preview) don't receive dispatch.",
+      "acceptable_alternative": "A single context is acceptable for this app's scale, but splitting is the expert pattern.",
+      "anti_pattern": "A single context containing both values and dispatch, causing the settings panel to re-render on every preview update"
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "canUndo / canRedo",
+      "trigger": "Requirements 7: undo/redo disabled when no history",
+      "correct": "Derived from past.length > 0 and future.length > 0",
+      "anti_pattern": "Stored as separate state synced via useEffect"
+    },
+    {
+      "name": "isNotificationFrequencyDisabled",
+      "trigger": "Requirement 4: frequency dropdown disabled when both notification types are off",
+      "correct": "Derived from !emailNotifications && !pushNotifications during render",
+      "anti_pattern": "Stored as state"
+    },
+    {
+      "name": "historyIndicatorText",
+      "trigger": "Requirement 14: 'Change X of Y'",
+      "correct": "Derived from past.length and past.length + future.length",
+      "anti_pattern": "Stored as state"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "Global keyboard shortcuts for undo/redo (Ctrl+Z, Ctrl+Y)",
+      "expected_pattern": "useEffect with document.addEventListener('keydown', ...) and cleanup. The handler checks for Ctrl+Z and Ctrl+Y/Ctrl+Shift+Z and calls undo/redo."
+    }
+  ],
+  "typescript_signals": [
+    {
+      "signal": "Discriminated union for reducer actions",
+      "correct": "type Action = { type: 'SET_THEME'; payload: Theme } | { type: 'SET_ACCENT'; payload: AccentColor } | { type: 'UNDO' } | { type: 'REDO' } | { type: 'RESET' } — each action type has a typed payload (or no payload for undo/redo/reset).",
+      "anti_pattern": "{ type: string; payload: any } — loses type safety on action payloads"
+    },
+    {
+      "signal": "Settings type used throughout",
+      "correct": "The provided Settings, AppearanceSettings, LayoutSettings, NotificationSettings types are imported and used for context values, reducer state, and component props.",
+      "anti_pattern": "Custom types that duplicate or diverge from the provided data model"
+    },
+    {
+      "signal": "Generic useUndoReducer hook (if extracted)",
+      "correct": "useUndoReducer<T>(initialState: T) that works with any state type — the hook is generic, not hardcoded to Settings",
+      "anti_pattern": "Hook hardcoded to Settings type"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 5,
+    "maximum_reasonable": 15,
+    "expected_components": [
+      "App (root, provides context)",
+      "Toolbar (undo/redo/reset buttons, history indicator)",
+      "SettingsPanel (left panel with groups)",
+      "AppearanceGroup (theme/color/font controls)",
+      "LayoutGroup (sidebar/header/footer/width controls)",
+      "NotificationGroup (email/push/frequency controls)",
+      "LivePreview (right panel, reads from context)"
+    ],
+    "optional_but_good": [
+      "PreviewHeader (mock header in preview)",
+      "PreviewSidebar (mock sidebar in preview)",
+      "PreviewContent (mock content in preview)",
+      "PreviewFooter (mock footer in preview)"
+    ]
+  },
+  "event_handler_patterns": [
+    {
+      "interaction": "Changing a setting",
+      "correct": "onChange handler dispatches a typed action to the reducer. The reducer pushes the old state to past, updates the setting, and clears future.",
+      "anti_pattern": "useState setter + separate useEffect to push to history"
+    }
+  ]
+}
