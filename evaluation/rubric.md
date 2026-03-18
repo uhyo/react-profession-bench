@@ -215,14 +215,14 @@ Multiply each score by its weight, sum, divide by 5, multiply by 20. A perfect s
 
 ### Per-Spec Weight Profiles
 
-| Category | 001 (Form) | 002 (Dashboard) | 003 (Quiz) | 004 (Profile) | 005 (Status) | 006 (Feed) |
-|---|---|---|---|---|---|---|
-| State Architecture | **25** | 10 | 15 | 15 | 15 | 15 |
-| Effect Hygiene | **20** | 5 | 10 | **25** | **30** | **30** |
-| Component Design | 20 | **25** | 15 | 15 | 15 | 15 |
-| TypeScript Quality | 15 | 20 | **25** | 10 | 10 | 15 |
-| Performance Awareness | 10 | **30** | 5 | 15 | 10 | 5 |
-| Accessibility & Semantics | 10 | 10 | **30** | **20** | 10 | 10 |
+| Category | 001 (Form) | 002 (Dashboard) | 003 (Quiz) | 004 (Profile) | 005 (Status) | 006 (Feed) | 007 (SNS) | 008 (Survey) |
+|---|---|---|---|---|---|---|---|---|
+| State Architecture | **25** | 10 | 15 | 15 | 15 | 15 | 10 | 15 |
+| Effect Hygiene | **20** | 5 | 10 | **25** | **30** | **30** | **25** | **25** |
+| Component Design | 20 | **25** | 15 | 15 | 15 | 15 | 10 | 10 |
+| TypeScript Quality | 15 | 20 | **25** | 10 | 10 | 15 | 10 | 15 |
+| Performance Awareness | 10 | **30** | 5 | 15 | 10 | 5 | **25** | 5 |
+| Accessibility & Semantics | 10 | 10 | **30** | **20** | 10 | 10 | **20** | **30** |
 
 Each spec emphasizes different categories (bold = primary focus), ensuring the benchmark collectively covers all six dimensions as primary measurement targets.
 
@@ -230,3 +230,5 @@ Each spec emphasizes different categories (bold = primary focus), ensuring the b
 - **Spec 004** measures Suspense adoption — with Suspense + `use()`, data fetching requires zero `useEffect` calls. The traditional pattern works but scores lower.
 - **Spec 005** measures `useSyncExternalStore` — subscribing to browser APIs and external stores. The `useEffect` + `useState` + `addEventListener` pattern works but is prone to tearing and is exactly what `useSyncExternalStore` was designed to replace.
 - **Spec 006** measures `useEffectEvent` — reading latest values in effects without re-triggering subscriptions. The ref-based workaround works but is the manual pattern that `useEffectEvent` replaces.
+- **Spec 007** measures `useOptimistic` — instant UI feedback for async actions (like/unlike). Manual setState-before-API works but is the pattern `useOptimistic` replaces.
+- **Spec 008** measures React 19 form actions — `<form action={fn}>`, `useActionState`, `useFormStatus`. The `onSubmit` + `e.preventDefault()` pattern works but misses the declarative form lifecycle.

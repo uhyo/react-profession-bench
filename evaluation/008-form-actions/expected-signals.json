@@ -1,0 +1,140 @@
+{
+  "spec_id": "008",
+  "spec_name": "Multi-Section Survey Form",
+  "rubric_weights": {
+    "state_architecture": 15,
+    "effect_hygiene": 25,
+    "component_design": 10,
+    "typescript_quality": 15,
+    "performance_awareness": 5,
+    "accessibility_semantics": 30
+  },
+  "primary_focus": "React 19 form actions (<form action={fn}>), useActionState, useFormStatus, native form submission via Enter key",
+  "form_action_signals": [
+    {
+      "signal": "<form action={fn}> for form submission",
+      "trigger": "Requirements 2, 9, 10: form element, Enter to submit, data sent to API",
+      "correct": "Use <form action={serverAction}> where the action is an async function that receives FormData. React 19 natively handles the form submission, pending state, and progressive enhancement. Combined with useActionState for managing the form state (errors, success).",
+      "anti_pattern_tier1": "No <form> element — using onClick on the submit button and collecting data manually from state. This breaks Enter-to-submit entirely.",
+      "anti_pattern_tier2": "<form onSubmit={handler}> with e.preventDefault() + manually calling the API. This works and Enter-to-submit works, but misses the React 19 form actions pattern. The developer must manually manage isPending state, which useActionState/useFormStatus handle automatically.",
+      "anti_pattern_tier3": "onKeyDown handler on inputs detecting Enter key to manually trigger submission. This is a reimplementation of native form behavior that <form> provides for free."
+    },
+    {
+      "signal": "useActionState for form state management",
+      "trigger": "Requirements 11-13: pending state, error display, success state",
+      "correct": "useActionState wraps the submit action and provides: the current state (initial/error/success), a dispatch function used as the form action, and isPending flag. The action function receives the previous state and FormData, validates, calls the API, and returns the new state.",
+      "anti_pattern_tier1": "Multiple useState (isPending, error, success) + manual try/catch in an async handler. Verbose and error-prone.",
+      "anti_pattern_tier2": "useTransition wrapping a manual submit handler. Closer to the right pattern (gets isPending) but still doesn't leverage FormData or useActionState's state machine pattern."
+    },
+    {
+      "signal": "useFormStatus for submit button pending state",
+      "trigger": "Requirement 11: submit button shows 'Submitting...' and is disabled during submission",
+      "correct": "A SubmitButton component that calls useFormStatus() to read { pending } and renders the button with disabled={pending} and appropriate label. useFormStatus automatically picks up the pending state from the nearest parent <form>.",
+      "anti_pattern_tier1": "Passing isPending as a prop from the parent. Works but doesn't use the React 19 API designed for this exact purpose.",
+      "anti_pattern_tier2": "Disabling the button via a ref or separate state. Overly manual."
+    },
+    {
+      "signal": "Enter key submits via native form behavior",
+      "trigger": "Requirement 9: Enter in text inputs submits the form",
+      "correct": "With <form action={fn}> and <button type='submit'>, pressing Enter in a text input naturally submits the form. No extra code needed.",
+      "anti_pattern_tier1": "onKeyDown handler on each input checking for Enter key and manually calling the submit function. This reimplements browser behavior and is fragile.",
+      "anti_pattern_tier2": "<form onSubmit> with e.preventDefault() — Enter works but the submission is handled outside React's form actions pattern."
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "characterCount",
+      "trigger": "Requirement 6: character count for comments textarea",
+      "correct": "Computed from the current comments value during render",
+      "anti_pattern": "Stored as separate state synced via useEffect"
+    },
+    {
+      "name": "isFormValid",
+      "trigger": "Requirement 14: validation prevents submission",
+      "correct": "Validation runs on submission within the action function, not pre-computed as state",
+      "note": "With form actions, validation naturally happens inside the action — there's no need for a derived 'isValid' flag"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "NONE expected if using form actions correctly",
+      "note": "With <form action> + useActionState, the entire submit lifecycle (pending, error, success) is managed declaratively without useEffect. The presence of useEffect for form submission state is a signal that the developer is using the pre-form-actions pattern."
+    }
+  ],
+  "accessibility_signals": [
+    {
+      "signal": "Native form submission via <form> + <button type='submit'>",
+      "trigger": "Requirement 9: Enter to submit",
+      "correct": "Browser handles Enter-to-submit natively when using <form> with a submit button. This is the most accessible pattern.",
+      "anti_pattern": "Custom onKeyDown handler — may miss edge cases, doesn't work for assistive technology that triggers submit differently"
+    },
+    {
+      "signal": "<fieldset> and <legend> for each section",
+      "correct": "Each question section wrapped in <fieldset> with <legend>",
+      "anti_pattern": "<div> with <h2> or no grouping"
+    },
+    {
+      "signal": "Radio group for rating",
+      "correct": "Radio buttons with <fieldset>/<legend> grouping, associated <label> for each option",
+      "anti_pattern": "Custom clickable elements without radio semantics"
+    },
+    {
+      "signal": "Checkbox group for categories",
+      "correct": "Checkboxes with <fieldset>/<legend>, each with <label>",
+      "anti_pattern": "Custom clickable divs"
+    },
+    {
+      "signal": "Error messages associated with fields",
+      "correct": "aria-describedby linking error messages to their fields, or aria-invalid on invalid fields",
+      "anti_pattern": "Error messages visually adjacent but not programmatically linked"
+    },
+    {
+      "signal": "Form-level error announcement",
+      "correct": "Error message from failed submission uses role='alert' or aria-live='assertive'",
+      "anti_pattern": "Error message is visual-only"
+    },
+    {
+      "signal": "Disabled state during submission",
+      "correct": "All inputs have disabled attribute during submission (Requirement 11), aria-busy on the form",
+      "anti_pattern": "Only the button is disabled, inputs remain editable during submission"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 4,
+    "maximum_reasonable": 12,
+    "expected_components": [
+      "App (root)",
+      "SurveyForm (the form with action)",
+      "SubmitButton (uses useFormStatus for pending state)",
+      "SubmissionHistory (list of past attempts)"
+    ],
+    "optional_but_good": [
+      "ContactSection (fieldset for name/email/company)",
+      "RatingSection (fieldset for radio buttons)",
+      "CategoriesSection (fieldset for checkboxes)",
+      "CommentsSection (textarea with character count)",
+      "FileUploadSection (file input with filename display)",
+      "ErrorMessage (reusable error display)",
+      "SuccessMessage (post-submission display)"
+    ]
+  },
+  "typescript_signals": [
+    {
+      "signal": "Discriminated union for form action state",
+      "correct": "type FormState = { status: 'idle' } | { status: 'error', errors: ... } | { status: 'success' } — used as the state type for useActionState",
+      "anti_pattern": "Flat object with optional fields: { error?: string, success?: boolean, isPending?: boolean }"
+    },
+    {
+      "signal": "FormData extraction typed correctly",
+      "correct": "Type-safe extraction from FormData with appropriate parsing (e.g., formData.get('rating') as string, then parseInt)",
+      "anti_pattern": "formData.get('rating') as any or no type checking on FormData values"
+    }
+  ],
+  "event_handler_patterns": [
+    {
+      "interaction": "Clearing validation errors on field change (Requirement 17)",
+      "correct": "onChange handler that clears the specific field's error from the form state",
+      "anti_pattern": "useEffect watching field values to clear errors"
+    }
+  ]
+}

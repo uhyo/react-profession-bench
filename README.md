@@ -95,9 +95,15 @@ react-profession-bench/
 │   ├── 005-system-status-dashboard/
 │   │   ├── spec.md
 │   │   └── data-model.ts           # Types + event bus with subscribe/getSnapshot API
-│   └── 006-notification-activity-feed/
+│   ├── 006-notification-activity-feed/
+│   │   ├── spec.md
+│   │   └── data-model.ts           # Types + simulated WebSocket + sound stub
+│   ├── 007-sns-feed/
+│   │   ├── spec.md
+│   │   └── data-model.ts           # Types + simulated like/fetch API
+│   └── 008-form-actions/
 │       ├── spec.md
-│       └── data-model.ts           # Types + simulated WebSocket + sound stub
+│       └── data-model.ts           # Types + simulated survey submission API
 ├── scaffold/                       # Template project given to the LLM
 │   ├── package.json
 │   ├── tsconfig.json
@@ -119,7 +125,11 @@ react-profession-bench/
 │   │   └── expected-signals.json
 │   ├── 005-system-status-dashboard/
 │   │   └── expected-signals.json
-│   └── 006-notification-activity-feed/
+│   ├── 006-notification-activity-feed/
+│   │   └── expected-signals.json
+│   ├── 007-sns-feed/
+│   │   └── expected-signals.json
+│   └── 008-form-actions/
 │       └── expected-signals.json
 ├── runner/                         # Orchestration engine
 │   └── run.ts                     # Main runner script
@@ -150,6 +160,8 @@ Each spec has its own rubric weight profile, emphasizing different React skills.
 | 004 | User Profile Browser | Effect Hygiene, Accessibility | Suspense for data fetching, granular Suspense boundaries, error boundaries, useTransition for navigation, progressive loading, loading skeletons |
 | 005 | System Status Dashboard | Effect Hygiene | useSyncExternalStore for browser APIs (online status, viewport, media queries, visibility), external event bus subscription, custom hooks wrapping external stores |
 | 006 | Notification Activity Feed | Effect Hygiene | useEffectEvent for stable subscriptions with changing settings, configurable auto-save with latest-value reads, toast management, pause/resume without reconnecting |
+| 007 | SNS Post Feed | Effect Hygiene, Performance | useOptimistic for instant like feedback, Activity component for offscreen deprioritization, memoized text parsing, semantic `<article>` elements |
+| 008 | Multi-Section Survey Form | Effect Hygiene, Accessibility | `<form action={fn}>` pattern, useActionState, useFormStatus, native Enter-to-submit, `<fieldset>`/`<legend>` grouping |
 
 ## Evaluation Details
 

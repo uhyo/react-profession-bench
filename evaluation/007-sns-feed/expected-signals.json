@@ -1,0 +1,121 @@
+{
+  "spec_id": "007",
+  "spec_name": "SNS Post Feed",
+  "rubric_weights": {
+    "state_architecture": 10,
+    "effect_hygiene": 25,
+    "component_design": 10,
+    "typescript_quality": 10,
+    "performance_awareness": 25,
+    "accessibility_semantics": 20
+  },
+  "primary_focus": "useOptimistic for instant like feedback, Activity component for offscreen deprioritization, semantic HTML with <article>",
+  "optimistic_update_signals": [
+    {
+      "signal": "useOptimistic for like/unlike",
+      "trigger": "Requirements 7-9: UI updates immediately, reverts on failure",
+      "correct": "useOptimistic hook to manage the optimistic like state. The like button reads from the optimistic state (which updates immediately on click), and the actual state is updated when the API resolves. On failure, the optimistic state automatically reverts.",
+      "anti_pattern_tier1": "No optimistic update — UI waits for API response before updating the like count, causing visible delay",
+      "anti_pattern_tier2": "Manual optimistic update via setState before API call + try/catch to revert. This works but is the pattern useOptimistic was designed to replace — it's error-prone (forgetting to revert, race conditions with rapid clicks) and verbose."
+    }
+  ],
+  "activity_signals": [
+    {
+      "signal": "<Activity> component for offscreen posts",
+      "trigger": "Requirement 13: off-screen posts should not compete with visible posts for rendering priority",
+      "correct": "Wrap each post (or groups of posts) in <Activity mode='visible'> / <Activity mode='hidden'> based on whether they are in the viewport. React deprioritizes rendering of hidden Activity subtrees, allowing visible posts to update promptly. Uses IntersectionObserver to detect visibility.",
+      "acceptable_alternative": "Using CSS content-visibility: auto for offscreen optimization — this is a browser-level optimization rather than React-level, but achieves a similar goal.",
+      "anti_pattern_tier1": "No offscreen optimization at all — all 50+ posts render and update at equal priority",
+      "anti_pattern_tier2": "Unmounting offscreen posts and remounting when scrolled back — this loses component state and is jarring"
+    }
+  ],
+  "performance_signals": [
+    {
+      "signal": "useMemo for mention/hashtag parsing",
+      "trigger": "Requirement 17: parsing should not recompute when unrelated state changes",
+      "correct": "useMemo on the parsed/rendered post body, keyed on the body text string. A like on post A should not re-parse post B's body.",
+      "anti_pattern": "Parsing inline on every render without memoization — every like toggle re-parses all visible posts"
+    },
+    {
+      "signal": "React.memo or similar on Post component",
+      "why": "With 50+ posts, re-rendering all posts when one is liked is wasteful. Each Post should only re-render when its own data changes."
+    },
+    {
+      "signal": "Stable callback references for like handler",
+      "why": "If each Post receives a new onClick function on every render, React.memo is defeated"
+    }
+  ],
+  "derived_values_that_must_not_be_state": [
+    {
+      "name": "formattedTimestamp (relative time)",
+      "trigger": "Requirement 3: relative timestamps like '5m ago'",
+      "correct": "Computed from post.timestamp during render (or via useMemo). A timer periodically triggers re-render to update them.",
+      "anti_pattern": "Stored as state per post and synced via useEffect"
+    },
+    {
+      "name": "hasMorePosts",
+      "trigger": "Requirement 12: 'No more posts' indicator",
+      "correct": "Derived from whether the last fetch returned fewer items than pageSize",
+      "anti_pattern": "Separate state synced via useEffect"
+    }
+  ],
+  "legitimate_effect_uses": [
+    {
+      "purpose": "IntersectionObserver for infinite scroll trigger",
+      "expected_pattern": "useEffect setting up IntersectionObserver on a sentinel element, with cleanup"
+    },
+    {
+      "purpose": "IntersectionObserver for post visibility detection (for Activity)",
+      "expected_pattern": "useEffect with IntersectionObserver to track which posts are visible"
+    },
+    {
+      "purpose": "Timer for updating relative timestamps",
+      "expected_pattern": "useEffect with setInterval to periodically trigger re-render, with cleanup"
+    }
+  ],
+  "accessibility_signals": [
+    {
+      "signal": "<article> for each post",
+      "trigger": "Requirement 4: each post is an independent content unit",
+      "correct": "Each post is wrapped in an <article> element, which semantically marks it as self-contained content",
+      "anti_pattern": "<div> for post containers — misses the semantic meaning"
+    },
+    {
+      "signal": "Like button is a proper <button>",
+      "correct": "<button> with aria-label describing the action (e.g., 'Like post by Alice' or 'Unlike post by Alice')",
+      "anti_pattern": "<span onClick> or <div onClick> for the like button"
+    },
+    {
+      "signal": "Like button aria-pressed",
+      "correct": "aria-pressed={likedByCurrentUser} on the like button to convey toggle state",
+      "anti_pattern": "No aria-pressed — screen reader cannot tell if post is liked"
+    },
+    {
+      "signal": "Error toast is announced",
+      "correct": "Error toast has role='alert' or aria-live='assertive'",
+      "anti_pattern": "Error toast is visual-only with no screen reader announcement"
+    },
+    {
+      "signal": "Loading states are accessible",
+      "correct": "Skeleton/loading indicators have aria-busy='true' or role='status'",
+      "anti_pattern": "Loading states are visual-only"
+    }
+  ],
+  "component_decomposition": {
+    "minimum_reasonable": 5,
+    "maximum_reasonable": 12,
+    "expected_components": [
+      "App (root)",
+      "Feed (manages posts list, pagination)",
+      "Post / PostCard (individual post with article element)",
+      "LikeButton (like/unlike with optimistic state)",
+      "PostBody (parses mentions and hashtags)",
+      "Avatar (author avatar circle)",
+      "LoadingIndicator / Skeleton"
+    ],
+    "optional_but_good": [
+      "ErrorToast (auto-dismissing error notification)",
+      "PostSkeleton (content-shaped loading placeholder)"
+    ]
+  }
+}
