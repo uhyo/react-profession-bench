@@ -3,73 +3,78 @@
   "spec_name": "Tooltip and Popover System",
   "rubric_weights": {
     "state_architecture": 10,
-    "effect_hygiene": 15,
+    "effect_hygiene": 20,
     "component_design": 25,
     "typescript_quality": 15,
     "performance_awareness": 10,
-    "accessibility_semantics": 25
+    "accessibility_semantics": 20
   },
-  "primary_focus": "createPortal for rendering outside DOM hierarchy, ref-as-prop (React 19, no forwardRef), reusable component API design",
-  "portal_signals": [
+  "primary_focus": "HTML Popover API + CSS Anchor Positioning (platform-native), or createPortal + ref as fallback. Reusable component API. ref-as-prop (React 19, no forwardRef).",
+  "overlay_rendering_signals": [
     {
-      "signal": "createPortal for tooltips and popovers",
-      "trigger": "Requirements 9, 14: render outside the table's DOM hierarchy",
-      "correct": "Tooltip and popover content is rendered via createPortal to document.body or a dedicated portal container. This avoids clipping by overflow:hidden or z-index stacking context issues in the table.",
-      "anti_pattern_tier1": "Rendering the tooltip/popover inline as a sibling of the trigger element inside the table. This is clipped by the table's overflow and stacking context.",
-      "anti_pattern_tier2": "Using CSS position:fixed to escape the stacking context. This works visually but the tooltip is still in the table's DOM — accessibility tools may not present it correctly, and event bubbling passes through the table."
+      "signal": "HTML Popover API for tooltips and popovers",
+      "trigger": "Requirements 9, 14: render outside the table DOM to avoid clipping; Requirement 15: click-outside and Escape close the popover",
+      "correct": "Use the HTML popover attribute on tooltip/popover elements. The browser automatically renders them in the top layer (above all other content regardless of z-index/overflow), handles light dismiss (click outside closes), and handles Escape key dismissal. For tooltips: popover='hint' (or popover='auto'). For action popovers: popover='auto'. Toggle with popovertarget attribute on the trigger button, or showPopover()/hidePopover() from JS.",
+      "why_this_is_best": "Zero JavaScript needed for top-layer rendering, click-outside handling, and Escape dismissal. The platform handles what React developers traditionally build with createPortal + useEffect + document click listeners. This is a strong signal that the developer understands modern web platform capabilities.",
+      "anti_pattern_tier1": "createPortal + useRef + getBoundingClientRect + useEffect for click-outside + useEffect for Escape. This is the traditional React approach and works correctly, but it reimplements behavior that the Popover API provides natively. Scores lower on Effect Hygiene because the effects for click-outside and Escape are unnecessary with the platform API.",
+      "anti_pattern_tier2": "CSS position:fixed without portal. The tooltip is still in the table's DOM, causing stacking context issues and incorrect event bubbling.",
+      "anti_pattern_tier3": "Rendering inline as a sibling within the table. Clipped by overflow:hidden."
+    },
+    {
+      "signal": "CSS Anchor Positioning for tooltip/popover placement",
+      "trigger": "Requirements 8, 13: position relative to trigger, flip if overflowing viewport",
+      "correct": "Use CSS Anchor Positioning: the trigger element has anchor-name, the popover uses position-anchor + position-area to declaratively position relative to the trigger. Viewport flipping is handled by position-try-fallbacks (e.g., try top first, flip to bottom if overflowing). All positioning is CSS-only — no getBoundingClientRect, no resize/scroll listeners.",
+      "why_this_is_best": "Eliminates all JavaScript positioning logic. No getBoundingClientRect calls, no scroll/resize event listeners, no position recalculation effects. The browser handles viewport-aware positioning and flipping declaratively.",
+      "anti_pattern_tier1": "getBoundingClientRect in an effect or event handler, manually calculating top/left, manually checking viewport bounds for flipping, and adding scroll/resize listeners to recalculate. Works but is ~50 lines of JS that CSS Anchor Positioning replaces with ~5 CSS declarations.",
+      "anti_pattern_tier2": "CSS-only positioning without anchor (e.g., position:absolute relative to a wrapper). Doesn't handle dynamic trigger sizes or viewport flipping."
     }
   ],
   "ref_signals": [
     {
       "signal": "ref-as-prop (React 19, no forwardRef)",
-      "trigger": "Requirement 18: reusable tooltip component that wraps a trigger element",
-      "correct": "The tooltip/popover component accepts a ref prop to measure the trigger element's position. In React 19, ref is a regular prop — the component just declares ref in its props interface. No forwardRef wrapper needed.",
-      "anti_pattern_tier1": "No ref usage — tooltip positioned with CSS relative to a wrapper div, which breaks when the trigger element varies in size or the page scrolls.",
-      "anti_pattern_tier2": "Using React.forwardRef to pass the ref. This works but is the pre-React 19 pattern. In React 19, forwardRef is unnecessary and adds complexity."
+      "trigger": "Requirement 18: reusable tooltip component wrapping a trigger element",
+      "correct": "If refs are used (for the createPortal approach), the component accepts ref as a regular prop in its props interface. In React 19, ref is a standard prop — no forwardRef wrapper needed. Note: with the Popover API + CSS Anchor Positioning approach, refs for positioning may not be needed at all (the browser handles it via CSS), but refs may still be used for imperative showPopover()/hidePopover() calls.",
+      "anti_pattern_tier1": "No ref usage at all in the portal approach — tooltip positioned relative to a wrapper div, breaks on varying trigger sizes.",
+      "anti_pattern_tier2": "React.forwardRef to pass the ref. Works but is the pre-React 19 pattern and adds unnecessary complexity."
+    }
+  ],
+  "effect_hygiene_signals": [
+    {
+      "signal": "Minimal effects for overlay behavior",
+      "correct_with_popover_api": "With the Popover API, click-outside and Escape handling require ZERO effects — the browser handles them natively. The only effect might be the hover delay timer for tooltips. This is the highest-scoring approach for Effect Hygiene.",
+      "correct_with_portal": "With createPortal, effects are needed for: (1) document click listener for outside-click dismiss, (2) document keydown listener for Escape, (3) scroll/resize listeners for repositioning. All must have proper cleanup. This is functional but verbose.",
+      "anti_pattern": "Effects without cleanup, or no outside-click/Escape handling at all."
     },
     {
-      "signal": "useRef for DOM measurement (getBoundingClientRect)",
-      "trigger": "Requirements 8, 13: position tooltips/popovers relative to trigger, flip if overflowing viewport",
-      "correct": "Use ref.current.getBoundingClientRect() to get the trigger's position, then calculate tooltip position. Check against window.innerHeight/innerWidth to determine if flipping is needed.",
-      "anti_pattern": "Hardcoded positioning or CSS-only positioning that doesn't handle viewport overflow"
+      "signal": "Hover delay timer cleanup",
+      "trigger": "Requirement 6: 300ms hover delay",
+      "correct": "setTimeout for the delay, cleared on mouseLeave (via clearTimeout in a cleanup function or in the mouseLeave handler). No lingering timers that show a tooltip after the user has moved away.",
+      "anti_pattern": "Timer not cleared on mouse leave"
     }
   ],
   "component_design_signals": [
     {
       "signal": "Reusable Tooltip/Popover component",
       "trigger": "Requirement 18: must be a reusable component, not hardcoded",
-      "correct": "A generic Tooltip component with props like: children (trigger element), content (tooltip content), placement ('top' | 'bottom'), delay, etc. Similarly a generic Popover component. Both handle portal rendering, positioning, and lifecycle internally.",
+      "correct": "A generic Tooltip component with props like: children (trigger element), content (tooltip content), placement. Similarly a generic Popover component. Both handle rendering, positioning, and lifecycle internally. The consuming component just wraps its trigger.",
       "anti_pattern": "Tooltip logic inlined in the table cell components. Works for this table but not reusable."
     },
     {
       "signal": "Separation of trigger and overlay logic",
-      "correct": "The tooltip/popover component manages its own show/hide state, delay timers, and positioning. The consuming component just wraps its trigger element.",
+      "correct": "The tooltip/popover component manages its own show/hide state. The consuming component just wraps its trigger element.",
       "anti_pattern": "The table component manages tooltip visibility state and passes it down"
-    }
-  ],
-  "effect_hygiene_signals": [
-    {
-      "signal": "Cleanup for hover delay timers",
-      "trigger": "Requirement 6: 300ms hover delay",
-      "correct": "setTimeout for the delay, cleared in a cleanup function (onMouseLeave or useEffect cleanup). No lingering timers.",
-      "anti_pattern": "Timer not cleared on mouse leave — tooltip appears after the user has already moved away"
-    },
-    {
-      "signal": "Escape key and click-outside handling",
-      "trigger": "Requirement 15: Escape and click-outside close popover",
-      "correct": "useEffect adding document-level keydown and click listeners with proper cleanup on unmount or when popover closes",
-      "anti_pattern": "Global listeners added but never removed"
     }
   ],
   "accessibility_signals": [
     {
       "signal": "aria-describedby for tooltips",
       "correct": "Trigger element has aria-describedby pointing to the tooltip's id. Tooltip has role='tooltip'.",
+      "note_popover_api": "With popover='hint', the browser may automatically associate the tooltip with the trigger via popovertarget. An explicit aria-describedby is still best practice.",
       "anti_pattern": "No ARIA linking — tooltip is visual-only"
     },
     {
       "signal": "Popover menu keyboard navigation",
-      "correct": "Popover menu items are focusable. Arrow keys move between items. Enter selects. Escape closes and returns focus to the trigger button.",
+      "correct": "Popover menu items are focusable. Arrow keys move between items. Enter/Space selects. Escape closes and returns focus to the trigger button.",
       "anti_pattern": "Menu items only clickable, not keyboard-navigable"
     },
     {
@@ -88,12 +93,18 @@
   ],
   "legitimate_effect_uses": [
     {
-      "purpose": "Document-level event listeners for click-outside and Escape",
-      "expected_pattern": "useEffect with addEventListener/removeEventListener and cleanup"
+      "purpose": "Hover delay timer (setTimeout/clearTimeout)",
+      "expected_pattern": "Timer managed in mouse event handlers or a small effect with cleanup"
     },
     {
-      "purpose": "Recalculate tooltip/popover position on scroll or resize",
-      "expected_pattern": "useEffect with scroll/resize listeners and cleanup"
+      "purpose": "ONLY IF using createPortal approach: document-level event listeners for click-outside and Escape",
+      "expected_pattern": "useEffect with addEventListener/removeEventListener and cleanup",
+      "note": "NOT needed if using the HTML Popover API — the browser handles this natively"
+    },
+    {
+      "purpose": "ONLY IF using createPortal approach: recalculate position on scroll or resize",
+      "expected_pattern": "useEffect with scroll/resize listeners and cleanup",
+      "note": "NOT needed if using CSS Anchor Positioning — the browser handles this natively"
     }
   ],
   "component_decomposition": {
@@ -102,15 +113,14 @@
     "expected_components": [
       "App (root)",
       "UserTable (table with sorting)",
-      "Tooltip (reusable, portal-based)",
-      "Popover (reusable, portal-based)",
+      "Tooltip (reusable overlay component)",
+      "Popover (reusable overlay component)",
       "PopoverMenu (menu items within popover)",
       "DetailPanel (selected user details)"
     ],
     "optional_but_good": [
       "TableHeader (sortable header cell)",
-      "UserRow (individual table row)",
-      "Portal (generic portal wrapper)"
+      "UserRow (individual table row)"
     ]
   }
 }

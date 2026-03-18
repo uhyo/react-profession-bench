@@ -183,7 +183,7 @@ Each spec has its own rubric weight profile, emphasizing different React skills.
 | 007 | SNS Post Feed | Effect Hygiene, Performance | useOptimistic for instant like feedback, Activity component for offscreen deprioritization, memoized text parsing, semantic `<article>` elements |
 | 008 | Multi-Section Survey Form | Effect Hygiene, Accessibility | `<form action={fn}>` pattern, useActionState, useFormStatus, native Enter-to-submit, `<fieldset>`/`<legend>` grouping |
 | 010 | Tree View File Explorer | Accessibility, Component Design | aria-tree/treeitem pattern, roving tabindex, recursive component rendering, discriminated union for nodes |
-| 011 | Tooltip and Popover System | Component Design, Accessibility | createPortal, ref-as-prop (React 19, no forwardRef), getBoundingClientRect positioning, reusable component API |
+| 011 | Tooltip and Popover System | Component Design, Effect Hygiene, Accessibility | HTML Popover API + CSS Anchor Positioning (best), createPortal + ref (fallback), ref-as-prop (React 19), reusable component API |
 | 012 | Multi-Tab Document Editor | State Architecture, Performance | React.lazy + Suspense for code splitting, preserving inactive tab state, tab management, memoized Markdown preview |
 | 013 | Settings Dashboard with Undo/Redo | State Architecture, TypeScript | useReducer for undo/redo history, `<Context>` (React 19), context splitting, typed action discriminated unions |
 

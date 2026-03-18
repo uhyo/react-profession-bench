@@ -237,3 +237,6 @@ Each spec emphasizes different categories (bold = primary focus), ensuring the b
 - **Spec 011** measures ref-as-prop — in React 19, `ref` is a regular prop, no `forwardRef` wrapper needed. Using `forwardRef` is the pre-React 19 pattern.
 - **Spec 012** measures `React.lazy` + `Suspense` for code splitting — editor components loaded on demand.
 - **Spec 013** measures `<Context>` (React 19 shorthand for `<Context.Provider>`), `useReducer` for undo/redo state machines, and context splitting to avoid unnecessary re-renders.
+
+**Platform API awareness:**
+- **Spec 011** measures awareness of the HTML Popover API (`popover` attribute) and CSS Anchor Positioning. These platform-native APIs eliminate the need for `createPortal`, `getBoundingClientRect`, and multiple `useEffect` hooks for click-outside/Escape/scroll handling. Using the platform API is the highest-scoring approach; the `createPortal` + ref + effect approach is functional but reimplements what the browser provides natively.
