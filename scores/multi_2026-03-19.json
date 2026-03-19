@@ -1,0 +1,443 @@
+[
+  {
+    "spec": "007-sns-feed",
+    "model": "sonnet",
+    "timestamp": "2026-03-19T01:53:22.580Z",
+    "compiles": true,
+    "weighted_score": 61,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 2,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "opus",
+    "timestamp": "2026-03-19T02:07:50.924Z",
+    "compiles": false,
+    "weighted_score": 65,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "haiku",
+    "timestamp": "2026-03-19T02:13:40.220Z",
+    "compiles": true,
+    "weighted_score": 62,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-19T02:20:22.201Z",
+    "compiles": true,
+    "weighted_score": 66,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "sonnet",
+    "timestamp": "2026-03-19T02:27:37.175Z",
+    "compiles": true,
+    "weighted_score": 61,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "opus",
+    "timestamp": "2026-03-19T02:36:08.201Z",
+    "compiles": false,
+    "weighted_score": 58,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 2,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "haiku",
+    "timestamp": "2026-03-19T02:43:28.505Z",
+    "compiles": true,
+    "weighted_score": 63,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 3,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-19T02:47:44.133Z",
+    "compiles": true,
+    "weighted_score": 64,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 2,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "sonnet",
+    "timestamp": "2026-03-19T02:58:20.542Z",
+    "compiles": true,
+    "weighted_score": 63,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "opus",
+    "timestamp": "2026-03-19T03:05:55.779Z",
+    "compiles": true,
+    "weighted_score": 69,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "haiku",
+    "timestamp": "2026-03-19T03:12:59.014Z",
+    "compiles": true,
+    "weighted_score": 65,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-19T03:17:33.718Z",
+    "compiles": true,
+    "weighted_score": 73,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "sonnet",
+    "timestamp": "2026-03-19T03:24:58.010Z",
+    "compiles": true,
+    "weighted_score": 55,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 5,
+      "component_design": 2,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "opus",
+    "timestamp": "2026-03-19T03:31:56.874Z",
+    "compiles": true,
+    "weighted_score": 80,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "haiku",
+    "timestamp": "2026-03-19T03:42:47.306Z",
+    "compiles": true,
+    "weighted_score": 59,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-19T03:47:37.442Z",
+    "compiles": true,
+    "weighted_score": null,
+    "categories": null,
+    "error": "JSON parse error: Bad escaped character in JSON at position 1841 (line 13 column 553)\nRaw: ```json\n{\n  \"categories\": {\n    \"state_architecture\": {\n      \"score\": 4,\n      \"justification\": \"State is minimal and well-separated: `manuallyExpandedKeys` (user intent) vs `forcedExpandedKeys` (derived from search) is a clean design. All derived values — `expandedKeys`, `visibleItems`, `visibleIndexByKey`, `selectedFile`, `includedKeys` — are computed via `useMemo`, never stored. The minor deduction is for the `useEffect` that syncs `focusedKey` based on `visibleItems` changes (`useEffect(() => { ... setFocusedKey(...) }, [focusedKey, visibleItems])`), which is effect-based state synchronization and could be handled during render or in the handlers that modify search/expand state.\"\n    },\n    \"effect_hygiene\": {\n      \"score\": 3,\n      \"justification\": \"Only two effects exist. The `useLayoutEffect` that calls `.focus()` (`itemRefs.current.get(pendingFocusKey)?.focus()`) is a legitimate imperative DOM side effect. However, the `useEffect` that calls `setFocusedKey` based on `visibleI"
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "sonnet",
+    "timestamp": "2026-03-19T03:53:29.921Z",
+    "compiles": true,
+    "weighted_score": 61,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "opus",
+    "timestamp": "2026-03-19T04:04:19.546Z",
+    "compiles": true,
+    "weighted_score": 65,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "haiku",
+    "timestamp": "2026-03-19T04:11:02.417Z",
+    "compiles": true,
+    "weighted_score": 66,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-19T04:16:13.924Z",
+    "compiles": true,
+    "weighted_score": 77,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "sonnet",
+    "timestamp": "2026-03-19T04:52:48.817Z",
+    "compiles": true,
+    "weighted_score": 78,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "opus",
+    "timestamp": "2026-03-19T04:59:25.337Z",
+    "compiles": true,
+    "weighted_score": 78,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "haiku",
+    "timestamp": "2026-03-19T05:06:50.466Z",
+    "compiles": true,
+    "weighted_score": 74,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-19T05:11:24.200Z",
+    "compiles": true,
+    "weighted_score": 72,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "sonnet",
+    "timestamp": "2026-03-19T05:18:09.069Z",
+    "compiles": true,
+    "weighted_score": 78,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "opus",
+    "timestamp": "2026-03-19T05:23:20.815Z",
+    "compiles": false,
+    "weighted_score": 86,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "haiku",
+    "timestamp": "2026-03-19T05:27:58.840Z",
+    "compiles": true,
+    "weighted_score": 64,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 3,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-19T05:32:23.954Z",
+    "compiles": true,
+    "weighted_score": 82,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  }
+]
