@@ -1,0 +1,18 @@
+[
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "gpt-5.4",
+    "timestamp": "2026-03-19T06:04:37.955Z",
+    "compiles": true,
+    "weighted_score": 82,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  }
+]
