@@ -1,5 +1,6 @@
 import { spawn, execFileSync as nodeExecFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 // --- Configuration ---
@@ -10,6 +11,11 @@ const SCAFFOLD_DIR = join(ROOT, "scaffold");
 const EVALUATION_DIR = join(ROOT, "evaluation");
 const RESULTS_DIR = join(ROOT, "results");
 const SCORES_DIR = join(ROOT, "scores");
+
+// Agents run here, outside the repo, so the evaluation/, scores/, and
+// other-model results/ directories are not reachable via relative paths.
+// Source artifacts are copied back to RESULTS_DIR after each run.
+const SANDBOX_ROOT = join(tmpdir(), "react-profession-bench");
 
 const MAX_BUDGET_USD = "5";
 
@@ -138,6 +144,7 @@ interface RunResult {
   evaluation: EvaluationResult | null;
   evaluationError: string | null;
   implementationError: string | null;
+  archiveDir: string;
 }
 
 // --- Helpers ---
@@ -170,22 +177,56 @@ function readEvaluationFiles(specId: string): EvaluationFiles {
   };
 }
 
-function setupWorkDir(specId: string, model: string): string {
-  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const workDir = join(RESULTS_DIR, `${timestamp}_${specId}_${model}`);
+interface RunPaths {
+  workDir: string;     // sandboxed location where the agent runs (outside the repo)
+  archiveDir: string;  // in-repo location where we preserve artifacts + scores
+  runName: string;
+}
 
-  // Copy scaffold
+function setupWorkDir(specId: string, model: string): RunPaths {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const runName = `${timestamp}_${specId}_${model}`;
+
+  // Sandbox the agent outside the repo so relative-path traversal
+  // cannot reach evaluation/, scores/, or other runs' results/.
+  mkdirSync(SANDBOX_ROOT, { recursive: true });
+  const workDir = join(SANDBOX_ROOT, runName);
+  const archiveDir = join(RESULTS_DIR, runName);
+
+  // Copy scaffold into the sandbox
   cpSync(SCAFFOLD_DIR, workDir, { recursive: true });
 
   // Copy data-model.ts into src/
   const dataModelSrc = join(SPECS_DIR, specId, "data-model.ts");
   cpSync(dataModelSrc, join(workDir, "src", "data-model.ts"));
 
-  // Install dependencies
+  // Install dependencies in the sandbox
   log(`  Installing dependencies in ${workDir}...`);
   nodeExecFileSync("pnpm", ["install", "--silent"], { cwd: workDir, timeout: 120_000 });
 
-  return workDir;
+  return { workDir, archiveDir, runName };
+}
+
+function archiveRun(workDir: string, archiveDir: string): void {
+  // Copy the generated source tree (not node_modules, not dist, not tsbuildinfo)
+  // into the repo's results/ directory for post-hoc inspection.
+  mkdirSync(archiveDir, { recursive: true });
+  const srcSrc = join(workDir, "src");
+  if (existsSync(srcSrc)) {
+    cpSync(srcSrc, join(archiveDir, "src"), { recursive: true });
+  }
+  for (const file of ["package.json", "tsconfig.json", "vite.config.ts", "index.html"]) {
+    const from = join(workDir, file);
+    if (existsSync(from)) cpSync(from, join(archiveDir, file));
+  }
+}
+
+function cleanupWorkDir(workDir: string): void {
+  try {
+    rmSync(workDir, { recursive: true, force: true });
+  } catch (e) {
+    log(`  Warning: could not remove ${workDir}: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 function exec(
@@ -481,39 +522,52 @@ async function runSingle(specId: string, model: string, evalModel: string): Prom
   const timestamp = new Date().toISOString();
   log(`Starting: spec=${specId} model=${model}`);
 
-  // Setup working directory
-  const workDir = setupWorkDir(specId, model);
-  log(`  Work dir: ${workDir}`);
+  // Setup working directory in the sandbox (outside the repo).
+  const { workDir, archiveDir } = setupWorkDir(specId, model);
+  log(`  Sandbox: ${workDir}`);
+  log(`  Archive: ${archiveDir}`);
 
-  // Phase 1: Implementation
-  const impl = await runImplementation(specId, model, workDir);
+  try {
+    // Phase 1: Implementation
+    const impl = await runImplementation(specId, model, workDir);
 
-  if (impl.error || Object.keys(impl.files).length === 0) {
+    // Archive whatever the agent produced, even if the implementation failed,
+    // so we can inspect partial output afterwards.
+    archiveRun(workDir, archiveDir);
+
+    if (impl.error || Object.keys(impl.files).length === 0) {
+      return {
+        spec: specId,
+        model,
+        timestamp,
+        compiles: false,
+        implementedFiles: impl.files,
+        evaluation: null,
+        evaluationError: null,
+        implementationError: impl.error ?? "No files produced",
+        archiveDir,
+      };
+    }
+
+    // Phase 2: Evaluation
+    const eval_ = await runEvaluation(specId, impl.files, evalModel);
+
     return {
       spec: specId,
       model,
       timestamp,
-      compiles: false,
+      compiles: impl.compiles,
       implementedFiles: impl.files,
-      evaluation: null,
-      evaluationError: null,
-      implementationError: impl.error ?? "No files produced",
+      evaluation: eval_.result,
+      evaluationError: eval_.error,
+      implementationError: null,
+      archiveDir,
     };
+  } finally {
+    // Always clean up the sandbox — its node_modules is large and the source
+    // has already been archived to archiveDir.
+    cleanupWorkDir(workDir);
   }
-
-  // Phase 2: Evaluation
-  const eval_ = await runEvaluation(specId, impl.files, evalModel);
-
-  return {
-    spec: specId,
-    model,
-    timestamp,
-    compiles: impl.compiles,
-    implementedFiles: impl.files,
-    evaluation: eval_.result,
-    evaluationError: eval_.error,
-    implementationError: null,
-  };
 }
 
 async function main(): Promise<void> {
@@ -588,16 +642,13 @@ async function main(): Promise<void> {
   writeFileSync(scoresPath, JSON.stringify(summary, null, 2));
   log(`Scores written to ${scoresPath}`);
 
-  // --- Write per-run detailed results ---
+  // --- Write per-run detailed results alongside the archived source ---
   for (const r of results) {
-    const detailDir = join(RESULTS_DIR, `${r.timestamp.replace(/[:.]/g, "-").slice(0, 19)}_${r.spec}_${r.model}`);
-    // The work dir was already created with this naming convention; write evaluation result into it
-    const evalPath = join(detailDir, "evaluation-result.json");
-    if (r.evaluation) {
-      // detailDir may have been created by setupWorkDir already; if not, skip
-      if (existsSync(detailDir)) {
-        writeFileSync(evalPath, JSON.stringify(r.evaluation, null, 2));
-      }
+    if (r.evaluation && existsSync(r.archiveDir)) {
+      writeFileSync(
+        join(r.archiveDir, "evaluation-result.json"),
+        JSON.stringify(r.evaluation, null, 2),
+      );
     }
   }
 
