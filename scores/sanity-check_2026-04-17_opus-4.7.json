@@ -1,0 +1,34 @@
+[
+  {
+    "spec": "007-sns-feed",
+    "model": "opus-4.7",
+    "timestamp": "2026-04-17T04:32:22.070Z",
+    "compiles": true,
+    "weighted_score": 81,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "opus-4.7",
+    "timestamp": "2026-04-17T04:37:16.114Z",
+    "compiles": true,
+    "weighted_score": 86,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 2
+    },
+    "error": null
+  }
+]

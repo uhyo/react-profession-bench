@@ -635,10 +635,13 @@ async function main(): Promise<void> {
   log(`Summary written to ${summaryPath}`);
 
   // --- Write to scores/ (tracked in git) ---
+  // Include a date+time stamp so repeat runs on the same day don't
+  // clobber each other; the user can rename to a more meaningful label
+  // (e.g. `sanity-check_2026-04-17_opus-4.7.json`) before committing.
   mkdirSync(SCORES_DIR, { recursive: true });
-  const dateStr = new Date().toISOString().slice(0, 10);
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16); // YYYY-MM-DDTHH-MM
   const specsLabel = config.specs.length === 1 ? config.specs[0] : "multi";
-  const scoresPath = join(SCORES_DIR, `${specsLabel}_${dateStr}.json`);
+  const scoresPath = join(SCORES_DIR, `${specsLabel}_${stamp}.json`);
   writeFileSync(scoresPath, JSON.stringify(summary, null, 2));
   log(`Scores written to ${scoresPath}`);
 
