@@ -23,10 +23,15 @@ interface ModelSpec {
 }
 
 const MODEL_REGISTRY: Record<string, ModelSpec> = {
-  // Claude CLI models (short aliases)
+  // Claude CLI models (short aliases — track the latest version)
   "sonnet":   { backend: "claude",  modelArg: "sonnet" },
   "opus":     { backend: "claude",  modelArg: "opus" },
   "haiku":    { backend: "claude",  modelArg: "haiku" },
+  // Claude CLI models (version-pinned)
+  "sonnet-4.6": { backend: "claude", modelArg: "claude-sonnet-4-6" },
+  "opus-4.6":   { backend: "claude", modelArg: "claude-opus-4-6" },
+  "opus-4.7":   { backend: "claude", modelArg: "claude-opus-4-7" },
+  "haiku-4.5":  { backend: "claude", modelArg: "claude-haiku-4-5-20251001" },
   // Copilot CLI models (OpenAI)
   "gpt-4.1":           { backend: "copilot", modelArg: "gpt-4.1" },
   "gpt-5-mini":        { backend: "copilot", modelArg: "gpt-5-mini" },
