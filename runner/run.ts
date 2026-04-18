@@ -22,10 +22,12 @@ const MAX_BUDGET_USD = "5";
 // --- Model Registry ---
 
 type CliBackend = "claude" | "copilot";
+type ClaudeEffort = "low" | "medium" | "high" | "xhigh" | "max";
 
 interface ModelSpec {
   backend: CliBackend;
   modelArg: string; // value passed to --model
+  effort?: ClaudeEffort; // claude-only: value passed to --effort
 }
 
 const MODEL_REGISTRY: Record<string, ModelSpec> = {
@@ -33,11 +35,13 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "sonnet":   { backend: "claude",  modelArg: "sonnet" },
   "opus":     { backend: "claude",  modelArg: "opus" },
   "haiku":    { backend: "claude",  modelArg: "haiku" },
-  // Claude CLI models (version-pinned)
+  // Claude CLI models (version-pinned, default effort = high)
   "sonnet-4.6": { backend: "claude", modelArg: "claude-sonnet-4-6" },
   "opus-4.6":   { backend: "claude", modelArg: "claude-opus-4-6" },
   "opus-4.7":   { backend: "claude", modelArg: "claude-opus-4-7" },
   "haiku-4.5":  { backend: "claude", modelArg: "claude-haiku-4-5-20251001" },
+  // Claude CLI models (effort variants)
+  "opus-4.7-max": { backend: "claude", modelArg: "claude-opus-4-7", effort: "max" },
   // Copilot CLI models (OpenAI)
   "gpt-4.1":           { backend: "copilot", modelArg: "gpt-4.1" },
   "gpt-5-mini":        { backend: "copilot", modelArg: "gpt-5-mini" },
@@ -68,8 +72,8 @@ function resolveModel(name: string): ModelSpec {
 
 function getImplementationArgs(spec: ModelSpec): string[] {
   switch (spec.backend) {
-    case "claude":
-      return [
+    case "claude": {
+      const args = [
         "--print",
         "--model", spec.modelArg,
         "--permission-mode", "bypassPermissions",
@@ -77,6 +81,9 @@ function getImplementationArgs(spec: ModelSpec): string[] {
         "--no-session-persistence",
         "--allowedTools", "Read", "Write", "Edit", "Bash", "Glob", "Grep",
       ];
+      if (spec.effort) args.push("--effort", spec.effort);
+      return args;
+    }
     case "copilot":
       return [
         "--model", spec.modelArg,
