@@ -377,6 +377,79 @@ async function runImplementation(specId: string, model: string, workDir: string)
 
 // --- Evaluation Phase ---
 
+// Valid characters that may follow a backslash inside a JSON string.
+const JSON_VALID_ESCAPES = new Set(['"', "\\", "/", "b", "f", "n", "r", "t", "u"]);
+
+// LLM evaluators routinely embed code snippets in their `justification`
+// strings — regexes like `\d`, Windows paths like `C:\Users`, or literal
+// newlines — none of which are legal JSON. JSON.parse is strict and aborts the
+// whole parse on the first offender, which has cost us several re-runs. This
+// pass walks the text as a string-aware state machine and makes the two
+// repairs that account for essentially all of those failures: it escapes
+// invalid backslash sequences and escapes literal control characters that
+// appear inside string literals. Structure outside strings is left untouched,
+// and escaped quotes (`\"`) are consumed as a unit so they never falsely
+// terminate a string.
+function repairJsonEscapes(input: string): string {
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (!inString) {
+      if (ch === '"') inString = true;
+      out += ch;
+      continue;
+    }
+    if (ch === "\\") {
+      const next = input[i + 1];
+      if (next !== undefined && JSON_VALID_ESCAPES.has(next)) {
+        out += ch + next;
+        i++; // consume the escaped char so it is never re-examined
+      } else {
+        out += "\\\\"; // invalid escape — emit a literal backslash
+      }
+      continue;
+    }
+    if (ch === '"') {
+      inString = false;
+      out += ch;
+      continue;
+    }
+    if (ch === "\n") { out += "\\n"; continue; }
+    if (ch === "\r") { out += "\\r"; continue; }
+    if (ch === "\t") { out += "\\t"; continue; }
+    const code = ch.charCodeAt(0);
+    if (code < 0x20) { out += "\\u" + code.toString(16).padStart(4, "0"); continue; }
+    out += ch;
+  }
+  return out;
+}
+
+// Strip markdown fences and any surrounding prose, leaving the outermost
+// { ... } span that the evaluator was asked to emit.
+function extractJsonObject(raw: string): string {
+  const stripped = raw
+    .replace(/^```(?:json)?\s*/m, "")
+    .replace(/\s*```\s*$/m, "")
+    .trim();
+  const start = stripped.indexOf("{");
+  const end = stripped.lastIndexOf("}");
+  if (start === -1 || end === -1 || end < start) return stripped;
+  return stripped.slice(start, end + 1);
+}
+
+// Parse the evaluator's response, falling back to a tolerant repair pass when
+// strict parsing fails. `repaired` reports whether the fallback was needed.
+function parseEvaluationResponse(stdout: string): { result: EvaluationResult; repaired: boolean } {
+  const candidate = extractJsonObject(stdout);
+  try {
+    return { result: JSON.parse(candidate) as EvaluationResult, repaired: false };
+  } catch {
+    const repaired = repairJsonEscapes(candidate);
+    return { result: JSON.parse(repaired) as EvaluationResult, repaired: true };
+  }
+}
+
 function buildEvaluationPrompt(
   sourceCode: string,
   evalFiles: EvaluationFiles,
@@ -451,13 +524,11 @@ async function runEvaluation(
     return { result: null, error: msg };
   }
 
-  // Parse JSON from response (strip possible markdown fences)
+  // Parse JSON from response, repairing invalid escapes / control chars if the
+  // strict parse fails (see repairJsonEscapes).
   try {
-    const jsonStr = stdout
-      .replace(/^```(?:json)?\s*/m, "")
-      .replace(/\s*```\s*$/m, "")
-      .trim();
-    const result = JSON.parse(jsonStr) as EvaluationResult;
+    const { result, repaired } = parseEvaluationResponse(stdout);
+    if (repaired) log(`  Recovered evaluation JSON via escape repair`);
     log(`  Evaluation score: ${result.weighted_score}`);
     return { result, error: null };
   } catch (e) {
