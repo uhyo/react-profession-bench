@@ -324,6 +324,12 @@ interface FailureInfo {
   // When the provider tells us when the window resets, we honour it; otherwise
   // null and callers fall back to a fixed wait.
   resetAt: Date | null;
+  // True when this was a non-zero exit with *no* output on either stream — the
+  // signature the claude CLI produces when it silently hits the usage limit in
+  // --print mode (empty stdout AND empty stderr, code 1). Indistinguishable
+  // from a rare genuine crash by text alone, so callers resolve it with a live
+  // probe (see probeRateLimit) rather than guessing.
+  ambiguous?: boolean;
 }
 
 // Retryable-after-wait: the subscription/API usage window is exhausted but will
@@ -357,10 +363,36 @@ export function parseResetTime(raw: string): Date | null {
 // ordinary failure.
 export function classifyFailure(err: unknown): FailureInfo {
   const e = err as Partial<ExecError> | undefined;
-  const raw = [e?.stdout, e?.stderr, e?.message].filter(Boolean).join("\n");
+  const stdout = e?.stdout ?? "";
+  const stderr = e?.stderr ?? "";
+  const raw = [stdout, stderr, e?.message].filter(Boolean).join("\n");
   if (FATAL_MARKERS.test(raw)) return { kind: "fatal", resetAt: null };
   if (RATE_LIMIT_MARKERS.test(raw)) return { kind: "rate_limit", resetAt: parseResetTime(raw) };
-  return { kind: "other", resetAt: null };
+  // Observed in practice: a usage limit in --print mode exits non-zero with
+  // *both* streams empty and no message. `code` is a number only for a real
+  // non-zero exit (null for timeout / spawn failure), so this targets that
+  // exact signature without swallowing timeouts.
+  const ambiguous = typeof e?.code === "number" && stdout.trim() === "" && stderr.trim() === "";
+  return { kind: "other", resetAt: null, ambiguous };
+}
+
+// Directly test whether the account is currently usage-limited, by issuing a
+// trivial, cheap request. A healthy account answers; a limited one fails the
+// same silent way the real run did. Used to disambiguate the empty-output
+// code-1 failure signature (see FailureInfo.ambiguous) — far more reliable than
+// pattern-matching an error message the CLI doesn't emit.
+async function probeRateLimit(modelArg: string): Promise<boolean> {
+  try {
+    const { stdout } = await exec("claude", [
+      "--print", "--model", modelArg,
+      "--max-budget-usd", "1", "--no-session-persistence", "--tools", "",
+    ], { timeout: 120_000, stdin: "Reply with the single word: ok" });
+    return stdout.trim().length === 0; // empty success == still being throttled
+  } catch (e) {
+    // Probe failed too. If it's an auth/credit problem, waiting won't help, so
+    // report "not a limit" and let the caller record the original failure.
+    return classifyFailure(e).kind !== "fatal";
+  }
 }
 
 // Anthropic resets the 5-hour usage window on a rolling basis. When the failure
@@ -908,14 +940,25 @@ async function main(): Promise<void> {
         console.error(`Fatal error on ${spec} × ${model} (auth/credit) — cannot be fixed by waiting. Aborting.`);
         process.exit(1);
       }
-      if (config.retryOnLimit && kind === "rate_limit" && attempt < config.maxLimitRetries) {
+
+      // Decide whether this is a usage limit. Text-matched limits are taken at
+      // face value; the silent empty-output signature is confirmed with a live
+      // probe, since the CLI emits no message to match on.
+      let isLimit = kind === "rate_limit";
+      if (config.retryOnLimit && !isLimit && result.failure?.ambiguous && result.implementationError) {
+        log(`  ${spec}: empty-output failure — probing account for a usage limit...`);
+        isLimit = await probeRateLimit(resolveModel(model).modelArg);
+        log(`  Probe: ${isLimit ? "usage limit IS active — will wait" : "not limited — treating as a genuine failure"}`);
+      }
+
+      if (config.retryOnLimit && isLimit && attempt < config.maxLimitRetries) {
         attempt++;
-        log(`  Rate limited on ${spec} × ${model} (attempt ${attempt}/${config.maxLimitRetries}).`);
+        log(`  Usage limit on ${spec} × ${model} (attempt ${attempt}/${config.maxLimitRetries}).`);
         await waitForReset(result.failure?.resetAt ?? null);
         continue; // retry the same combo with a fresh window
       }
       // Out of retries, or a non-retryable failure: record and move on.
-      if (kind === "rate_limit" && attempt >= config.maxLimitRetries) {
+      if (isLimit && attempt >= config.maxLimitRetries) {
         log(`  Giving up on ${spec} × ${model} after ${attempt} limit waits.`);
       }
       upsert(summaryRow(result));
