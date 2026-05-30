@@ -119,6 +119,9 @@ interface RunConfig {
   models: string[];
   evalModel: string;
   dryRun: boolean;
+  retryOnLimit: boolean;     // wait for the usage window to refill and retry
+  maxLimitRetries: number;   // cap on consecutive waits per combo
+  resumePath: string | null; // existing scores file to append to / skip from
 }
 
 interface SpecFiles {
@@ -153,6 +156,7 @@ interface RunResult {
   evaluation: EvaluationResult | null;
   evaluationError: string | null;
   implementationError: string | null;
+  failure: FailureInfo | null; // populated when a phase failed
   archiveDir: string;
 }
 
@@ -238,6 +242,24 @@ function cleanupWorkDir(workDir: string): void {
   }
 }
 
+// An exec failure carries the child's captured streams so callers can inspect
+// them. Usage-limit notices in particular are printed to STDOUT (with an empty
+// stderr) before the CLI exits non-zero, so the message is invisible unless we
+// preserve stdout on the error path.
+interface ExecError extends Error {
+  stdout: string;
+  stderr: string;
+  code: number | null;
+}
+
+function makeExecError(message: string, stdout: string, stderr: string, code: number | null): ExecError {
+  const err = new Error(message) as ExecError;
+  err.stdout = stdout;
+  err.stderr = stderr;
+  err.code = code;
+  return err;
+}
+
 function exec(
   cmd: string,
   args: string[],
@@ -258,7 +280,7 @@ function exec(
       if (!settled) {
         settled = true;
         child.kill("SIGTERM");
-        reject(new Error(`${cmd} timed out after ${timeout}ms`));
+        reject(makeExecError(`${cmd} timed out after ${timeout}ms`, stdout, stderr, null));
       }
     }, timeout);
 
@@ -270,7 +292,10 @@ function exec(
       if (settled) return;
       settled = true;
       if (code !== 0) {
-        reject(new Error(`${cmd} ${args.join(" ")} exited with code ${code}\nstderr: ${stderr}`));
+        reject(makeExecError(
+          `${cmd} ${args.join(" ")} exited with code ${code}\nstderr: ${stderr}`,
+          stdout, stderr, code,
+        ));
       } else {
         resolve({ stdout, stderr });
       }
@@ -280,7 +305,7 @@ function exec(
       clearTimeout(timer);
       if (settled) return;
       settled = true;
-      reject(new Error(`${cmd} failed to start: ${err.message}`));
+      reject(makeExecError(`${cmd} failed to start: ${err.message}`, stdout, stderr, null));
     });
 
     if (stdin) {
@@ -288,6 +313,116 @@ function exec(
     }
     child.stdin.end();
   });
+}
+
+// --- Usage-limit / failure classification ---
+
+type FailureKind = "rate_limit" | "fatal" | "other";
+
+interface FailureInfo {
+  kind: FailureKind;
+  // When the provider tells us when the window resets, we honour it; otherwise
+  // null and callers fall back to a fixed wait.
+  resetAt: Date | null;
+}
+
+// Retryable-after-wait: the subscription/API usage window is exhausted but will
+// refill. Anthropic resets the 5-hour window on a rolling basis.
+const RATE_LIMIT_MARKERS = /usage limit reached|rate.?limit|too many requests|\b429\b|\b529\b|overloaded|limit will reset|please wait and retry/i;
+// Not worth waiting on — these need human action, so retrying after a sleep
+// would just burn another window.
+const FATAL_MARKERS = /credit balance (?:is )?too low|invalid api key|please run \/login|oauth token (?:expired|revoked)|not logged in|authentication failed/i;
+
+// Pull a concrete reset moment out of the failure text when the CLI provides
+// one. Recognises a trailing unix epoch (the `...reached|<epoch>` form Claude
+// Code emits in print mode), an ISO timestamp, or a `resetsAt` field.
+export function parseResetTime(raw: string): Date | null {
+  const epoch = raw.match(/(?:reached|reset[a-z]*|retry[- ]?after)[^0-9]{0,16}(\d{10,13})/i);
+  if (epoch) {
+    const n = Number(epoch[1]);
+    const ms = n < 1e12 ? n * 1000 : n; // seconds vs milliseconds
+    const d = new Date(ms);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  const iso = raw.match(/reset[a-z]*["':\s]{0,6}(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)/i);
+  if (iso) {
+    const d = new Date(iso[1]);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+// Inspect a caught error (ideally an ExecError carrying the child's stdout) and
+// decide whether it is a transient usage limit, a fatal config problem, or an
+// ordinary failure.
+export function classifyFailure(err: unknown): FailureInfo {
+  const e = err as Partial<ExecError> | undefined;
+  const raw = [e?.stdout, e?.stderr, e?.message].filter(Boolean).join("\n");
+  if (FATAL_MARKERS.test(raw)) return { kind: "fatal", resetAt: null };
+  if (RATE_LIMIT_MARKERS.test(raw)) return { kind: "rate_limit", resetAt: parseResetTime(raw) };
+  return { kind: "other", resetAt: null };
+}
+
+// Anthropic resets the 5-hour usage window on a rolling basis. When the failure
+// text doesn't name a reset time, wait a touch over 5 hours so the window has
+// definitely refilled; always add a small buffer past the named time.
+const DEFAULT_LIMIT_WAIT_MS = 5 * 60 * 60 * 1000 + 5 * 60 * 1000; // 5h05m
+const RESET_BUFFER_MS = 3 * 60 * 1000; // 3m
+const HEARTBEAT_MS = 10 * 60 * 1000; // log progress every 10m while sleeping
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+// Block until the usage window should have refilled, emitting periodic
+// heartbeats so a long unattended sleep is observable in the log.
+async function waitForReset(resetAt: Date | null): Promise<void> {
+  let waitMs: number;
+  if (resetAt) {
+    waitMs = resetAt.getTime() - Date.now() + RESET_BUFFER_MS;
+    if (waitMs < RESET_BUFFER_MS) waitMs = RESET_BUFFER_MS; // already past / clock skew
+  } else {
+    waitMs = DEFAULT_LIMIT_WAIT_MS;
+  }
+  const resumeAt = new Date(Date.now() + waitMs);
+  log(`  Usage limit hit. Waiting ~${Math.round(waitMs / 60000)} min` +
+    `${resetAt ? ` (provider reset ${resetAt.toISOString().slice(11, 16)} UTC)` : ""}` +
+    `, resuming at ${resumeAt.toISOString().slice(11, 16)} UTC...`);
+  let remaining = waitMs;
+  while (remaining > 0) {
+    const chunk = Math.min(HEARTBEAT_MS, remaining);
+    await sleep(chunk);
+    remaining -= chunk;
+    if (remaining > 0) log(`  ...waiting, ${Math.round(remaining / 60000)} min left`);
+  }
+  log(`  Window should be refilled — resuming.`);
+}
+
+// One row of the scores file (mirrors the `summary` shape written below).
+interface SummaryRow {
+  spec: string;
+  model: string;
+  timestamp: string;
+  compiles: boolean;
+  weighted_score: number | null;
+  categories: Record<string, number> | null;
+  error: string | null;
+}
+
+function summaryRow(r: RunResult): SummaryRow {
+  return {
+    spec: r.spec,
+    model: r.model,
+    timestamp: r.timestamp,
+    compiles: r.compiles,
+    weighted_score: r.evaluation?.weighted_score ?? null,
+    categories: r.evaluation
+      ? Object.fromEntries(
+          Object.entries(r.evaluation.categories).map(([k, v]) => [k, v.score]),
+        )
+      : null,
+    error: r.implementationError ?? r.evaluationError ?? null,
+  };
 }
 
 function collectSourceFiles(srcDir: string): Record<string, string> {
@@ -344,7 +479,7 @@ ${spec.dataModel}
 - Follow the spec precisely.`;
 }
 
-async function runImplementation(specId: string, model: string, workDir: string): Promise<{ files: Record<string, string>; compiles: boolean; error: string | null }> {
+async function runImplementation(specId: string, model: string, workDir: string): Promise<{ files: Record<string, string>; compiles: boolean; error: string | null; failure: FailureInfo | null }> {
   const spec = readSpecFiles(specId);
   const prompt = buildImplementationPrompt(spec);
   const modelSpec = resolveModel(model);
@@ -353,12 +488,13 @@ async function runImplementation(specId: string, model: string, workDir: string)
 
   try {
     await exec(modelSpec.backend, getImplementationArgs(modelSpec), {
-      cwd: workDir, timeout: 1_800_000, stdin: prompt,
+      cwd: workDir, timeout: 2_700_000, stdin: prompt,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    log(`  Implementation failed: ${msg.slice(0, 200)}`);
-    return { files: {}, compiles: false, error: msg };
+    const failure = classifyFailure(e);
+    log(`  Implementation failed (${failure.kind}): ${msg.slice(0, 200)}`);
+    return { files: {}, compiles: false, error: msg, failure };
   }
 
   // Check compilation
@@ -372,7 +508,7 @@ async function runImplementation(specId: string, model: string, workDir: string)
   }
 
   const files = collectSourceFiles(join(workDir, "src"));
-  return { files, compiles, error: null };
+  return { files, compiles, error: null, failure: null };
 }
 
 // --- Evaluation Phase ---
@@ -503,7 +639,7 @@ async function runEvaluation(
   specId: string,
   files: Record<string, string>,
   evalModel: string,
-): Promise<{ result: EvaluationResult | null; error: string | null }> {
+): Promise<{ result: EvaluationResult | null; error: string | null; failure: FailureInfo | null }> {
   const spec = readSpecFiles(specId);
   const evalFiles = readEvaluationFiles(specId);
   const sourceCode = formatSourceForPrompt(files);
@@ -520,8 +656,9 @@ async function runEvaluation(
     stdout = result.stdout;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    log(`  Evaluation failed: ${msg.slice(0, 200)}`);
-    return { result: null, error: msg };
+    const failure = classifyFailure(e);
+    log(`  Evaluation failed (${failure.kind}): ${msg.slice(0, 200)}`);
+    return { result: null, error: msg, failure };
   }
 
   // Parse JSON from response, repairing invalid escapes / control chars if the
@@ -530,12 +667,12 @@ async function runEvaluation(
     const { result, repaired } = parseEvaluationResponse(stdout);
     if (repaired) log(`  Recovered evaluation JSON via escape repair`);
     log(`  Evaluation score: ${result.weighted_score}`);
-    return { result, error: null };
+    return { result, error: null, failure: null };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     log(`  Failed to parse evaluation JSON: ${msg}`);
     log(`  Raw output (first 500 chars): ${stdout.slice(0, 500)}`);
-    return { result: null, error: `JSON parse error: ${msg}\nRaw: ${stdout.slice(0, 1000)}` };
+    return { result: null, error: `JSON parse error: ${msg}\nRaw: ${stdout.slice(0, 1000)}`, failure: { kind: "other", resetAt: null } };
   }
 }
 
@@ -547,6 +684,9 @@ function parseArgs(): RunConfig {
   const models: string[] = [];
   let evalModel = DEFAULT_EVAL_MODEL;
   let dryRun = false;
+  let retryOnLimit = false;
+  let maxLimitRetries = 12;
+  let resumePath: string | null = null;
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {
@@ -562,6 +702,15 @@ function parseArgs(): RunConfig {
       case "--dry-run":
         dryRun = true;
         break;
+      case "--retry-on-limit":
+        retryOnLimit = true;
+        break;
+      case "--max-limit-retries":
+        maxLimitRetries = Number(args[++i]);
+        break;
+      case "--resume":
+        resumePath = resolve(args[++i]);
+        break;
       case "--help":
         console.log(`Usage: node runner/run.ts [options]
 
@@ -571,6 +720,16 @@ Options:
                        CLI backend is deduced from the model name.
   --eval-model <name>  Model for evaluation. Default: ${DEFAULT_EVAL_MODEL}.
   --dry-run            Show what would run without executing.
+  --retry-on-limit     On a usage-limit failure, wait for the window to refill
+                       (honouring the provider's reset time when given, else
+                       ~5h) and retry the same spec. Scores are written
+                       incrementally so progress survives a kill. Intended for
+                       long unattended runs (e.g. effort=max across all specs).
+  --max-limit-retries <n>  Max consecutive waits per spec before giving up on
+                       it. Default: 12.
+  --resume <file>      Append to an existing scores JSON, skipping any spec that
+                       already has a non-null weighted_score. Combine with
+                       --retry-on-limit to continue a run after a restart.
   --help               Show this help.
 
 Available models:
@@ -595,6 +754,9 @@ Examples:
     models: models.length > 0 ? models : DEFAULT_MODELS,
     evalModel,
     dryRun,
+    retryOnLimit,
+    maxLimitRetries,
+    resumePath,
   };
 }
 
@@ -625,6 +787,7 @@ async function runSingle(specId: string, model: string, evalModel: string): Prom
         evaluation: null,
         evaluationError: null,
         implementationError: impl.error ?? "No files produced",
+        failure: impl.failure ?? { kind: "other", resetAt: null },
         archiveDir,
       };
     }
@@ -641,6 +804,7 @@ async function runSingle(specId: string, model: string, evalModel: string): Prom
       evaluation: eval_.result,
       evaluationError: eval_.error,
       implementationError: null,
+      failure: eval_.result ? null : eval_.failure,
       archiveDir,
     };
   } finally {
@@ -683,46 +847,86 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Ensure results directory exists
+  // Ensure results + scores directories exist.
   mkdirSync(RESULTS_DIR, { recursive: true });
-
-  const results: RunResult[] = [];
-
-  for (const { spec, model } of matrix) {
-    const result = await runSingle(spec, model, config.evalModel);
-    results.push(result);
-    console.log();
-  }
-
-  // --- Write summary ---
-  const summaryPath = join(RESULTS_DIR, `summary_${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}.json`);
-
-  const summary = results.map((r) => ({
-    spec: r.spec,
-    model: r.model,
-    timestamp: r.timestamp,
-    compiles: r.compiles,
-    weighted_score: r.evaluation?.weighted_score ?? null,
-    categories: r.evaluation
-      ? Object.fromEntries(
-          Object.entries(r.evaluation.categories).map(([k, v]) => [k, v.score])
-        )
-      : null,
-    error: r.implementationError ?? r.evaluationError ?? null,
-  }));
-
-  writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
-  log(`Summary written to ${summaryPath}`);
-
-  // --- Write to scores/ (tracked in git) ---
-  // Include a date+time stamp so repeat runs on the same day don't
-  // clobber each other; the user can rename to a more meaningful label
-  // (e.g. `sanity-check_2026-04-17_opus-4.7.json`) before committing.
   mkdirSync(SCORES_DIR, { recursive: true });
+
+  // The scores file is the source of truth for progress: it is written after
+  // every spec (not just at the end) so a kill mid-run — or a usage-limit wait
+  // that never returns — never loses completed work. When resuming, we load it
+  // and append, skipping specs that already carry a score. The stamp matches
+  // the previous behaviour; the user can rename to a meaningful label before
+  // committing (scores/ is tracked in git).
   const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16); // YYYY-MM-DDTHH-MM
   const specsLabel = config.specs.length === 1 ? config.specs[0] : "multi";
-  const scoresPath = join(SCORES_DIR, `${specsLabel}_${stamp}.json`);
-  writeFileSync(scoresPath, JSON.stringify(summary, null, 2));
+  const scoresPath = config.resumePath ?? join(SCORES_DIR, `${specsLabel}_${stamp}.json`);
+
+  const summary: SummaryRow[] = [];
+  if (config.resumePath && existsSync(config.resumePath)) {
+    try {
+      const prior = JSON.parse(readFileSync(config.resumePath, "utf-8")) as SummaryRow[];
+      summary.push(...prior);
+      log(`Resuming from ${config.resumePath} (${prior.filter((r) => r.weighted_score != null).length} specs already scored)`);
+    } catch (e) {
+      console.error(`Could not read --resume file ${config.resumePath}: ${e instanceof Error ? e.message : String(e)}`);
+      process.exit(1);
+    }
+  }
+
+  const hasScore = (spec: string, model: string) =>
+    summary.some((r) => r.spec === spec && r.model === model && r.weighted_score != null);
+
+  const persist = () => writeFileSync(scoresPath, JSON.stringify(summary, null, 2));
+  const upsert = (row: SummaryRow) => {
+    const idx = summary.findIndex((r) => r.spec === row.spec && r.model === row.model);
+    if (idx >= 0) summary[idx] = row; else summary.push(row);
+    persist();
+  };
+
+  const results: RunResult[] = []; // detailed results produced this session
+
+  for (const { spec, model } of matrix) {
+    if (hasScore(spec, model)) {
+      log(`Skipping ${spec} × ${model} — already scored`);
+      continue;
+    }
+
+    // Run the combo, optionally waiting out usage limits and retrying. A
+    // non-limit failure (compile/parse/other) is recorded once and we move on;
+    // a fatal auth/credit error aborts the whole run since waiting can't fix it.
+    let attempt = 0;
+    while (true) {
+      const result = await runSingle(spec, model, config.evalModel);
+      results.push(result);
+      console.log();
+
+      if (result.evaluation) { upsert(summaryRow(result)); break; }
+
+      const kind = result.failure?.kind ?? "other";
+      if (kind === "fatal") {
+        upsert(summaryRow(result));
+        console.error(`Fatal error on ${spec} × ${model} (auth/credit) — cannot be fixed by waiting. Aborting.`);
+        process.exit(1);
+      }
+      if (config.retryOnLimit && kind === "rate_limit" && attempt < config.maxLimitRetries) {
+        attempt++;
+        log(`  Rate limited on ${spec} × ${model} (attempt ${attempt}/${config.maxLimitRetries}).`);
+        await waitForReset(result.failure?.resetAt ?? null);
+        continue; // retry the same combo with a fresh window
+      }
+      // Out of retries, or a non-retryable failure: record and move on.
+      if (kind === "rate_limit" && attempt >= config.maxLimitRetries) {
+        log(`  Giving up on ${spec} × ${model} after ${attempt} limit waits.`);
+      }
+      upsert(summaryRow(result));
+      break;
+    }
+  }
+
+  // Mirror the final scores into results/ for archival, matching prior behaviour.
+  const summaryPath = join(RESULTS_DIR, `summary_${new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19)}.json`);
+  writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
+  log(`Summary written to ${summaryPath}`);
   log(`Scores written to ${scoresPath}`);
 
   // --- Write per-run detailed results alongside the archived source ---
@@ -755,11 +959,11 @@ async function main(): Promise<void> {
 
   for (const spec of config.specs) {
     const scores = config.models.map((model) => {
-      const r = results.find((r) => r.spec === spec && r.model === model);
+      const r = summary.find((r) => r.spec === spec && r.model === model);
       if (!r) return "—".padStart(modelColWidth);
-      if (r.implementationError) return "ERR".padStart(modelColWidth);
-      if (!r.evaluation) return "N/A".padStart(modelColWidth);
-      return String(r.evaluation.weighted_score).padStart(modelColWidth);
+      if (r.weighted_score != null) return String(r.weighted_score).padStart(modelColWidth);
+      if (r.error) return "ERR".padStart(modelColWidth);
+      return "N/A".padStart(modelColWidth);
     });
     console.log(
       spec.padEnd(specColWidth) + " | " +
@@ -783,7 +987,11 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
-  console.error("Fatal error:", e);
-  process.exit(1);
-});
+// Only run the benchmark when invoked directly; importing this module (e.g.
+// from a test) should not kick off a full run.
+if (import.meta.main) {
+  main().catch((e) => {
+    console.error("Fatal error:", e);
+    process.exit(1);
+  });
+}
