@@ -121,6 +121,8 @@ interface RunConfig {
   dryRun: boolean;
   retryOnLimit: boolean;     // wait for the usage window to refill and retry
   maxLimitRetries: number;   // cap on consecutive waits per combo
+  maxTransientRetries: number; // immediate retries for non-limit failures (sleep-broken connections etc.)
+  keepAwake: boolean;        // hold the Windows host awake during the run (WSL)
   resumePath: string | null; // existing scores file to append to / skip from
 }
 
@@ -401,6 +403,7 @@ async function probeRateLimit(modelArg: string): Promise<boolean> {
 const DEFAULT_LIMIT_WAIT_MS = 5 * 60 * 60 * 1000 + 5 * 60 * 1000; // 5h05m
 const RESET_BUFFER_MS = 3 * 60 * 1000; // 3m
 const HEARTBEAT_MS = 10 * 60 * 1000; // log progress every 10m while sleeping
+const TRANSIENT_BACKOFF_MS = 30 * 1000; // pause before retrying a non-limit failure
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
@@ -428,6 +431,45 @@ async function waitForReset(resetAt: Date | null): Promise<void> {
     if (remaining > 0) log(`  ...waiting, ${Math.round(remaining / 60000)} min left`);
   }
   log(`  Window should be refilled — resuming.`);
+}
+
+// Hold the Windows host awake for the lifetime of the run (WSL only). The
+// claude CLI's long calls die when the laptop suspends mid-request, so on a
+// laptop we inhibit idle-sleep via SetThreadExecutionState. A persistent
+// powershell thread must stay alive to hold the flag; it re-asserts
+// periodically and self-expires after ~20h as an orphan backstop. Returns a
+// release function; a no-op (with a returned no-op) when interop is absent.
+function startKeepAwake(): () => void {
+  // ES_CONTINUOUS (0x80000000) | ES_SYSTEM_REQUIRED (0x1) = 2147483649
+  const ps = [
+    "$s='[DllImport(\"kernel32.dll\")] public static extern uint SetThreadExecutionState(uint e);';",
+    "$t=Add-Type -MemberDefinition $s -Name P -Namespace W -PassThru;",
+    "for($i=0;$i -lt 1440;$i++){ [void]$t::SetThreadExecutionState(2147483649); Start-Sleep -Seconds 50 }",
+  ].join(" ");
+  let child: ReturnType<typeof spawn> | null = null;
+  try {
+    child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps], { stdio: "ignore" });
+    child.on("error", () => { /* interop missing / not Windows — ignore */ });
+    // Never let the inhibitor keep the Node event loop alive — the run must be
+    // free to exit the instant the benchmark finishes; release() (and the PS
+    // self-expiry) handle teardown.
+    child.unref();
+    log(`  Keep-awake: idle-sleep inhibited on the Windows host (lid-close still sleeps).`);
+  } catch {
+    log(`  Keep-awake: unavailable (not WSL?) — continuing without it.`);
+    return () => {};
+  }
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    try { child?.kill(); } catch { /* already gone */ }
+  };
+  // Ensure the inhibitor never outlives the run, even on Ctrl-C / kill.
+  process.once("exit", release);
+  process.once("SIGINT", () => { release(); process.exit(130); });
+  process.once("SIGTERM", () => { release(); process.exit(143); });
+  return release;
 }
 
 // One row of the scores file (mirrors the `summary` shape written below).
@@ -718,6 +760,8 @@ function parseArgs(): RunConfig {
   let dryRun = false;
   let retryOnLimit = false;
   let maxLimitRetries = 12;
+  let maxTransientRetries = 2;
+  let keepAwake = false;
   let resumePath: string | null = null;
 
   for (let i = 0; i < args.length; i++) {
@@ -740,6 +784,12 @@ function parseArgs(): RunConfig {
       case "--max-limit-retries":
         maxLimitRetries = Number(args[++i]);
         break;
+      case "--max-transient-retries":
+        maxTransientRetries = Number(args[++i]);
+        break;
+      case "--keep-awake":
+        keepAwake = true;
+        break;
       case "--resume":
         resumePath = resolve(args[++i]);
         break;
@@ -759,6 +809,13 @@ Options:
                        long unattended runs (e.g. effort=max across all specs).
   --max-limit-retries <n>  Max consecutive waits per spec before giving up on
                        it. Default: 12.
+  --max-transient-retries <n>  Immediate retries for a NON-limit failure
+                       (e.g. a connection broken by the host sleeping, a
+                       timeout, an unparseable evaluation) before recording it.
+                       Short backoff between tries. Default: 2.
+  --keep-awake         Hold the Windows host awake for the duration (WSL only,
+                       via SetThreadExecutionState). Blocks idle-sleep; does NOT
+                       block lid-close sleep. No-op off WSL. Reverts on exit.
   --resume <file>      Append to an existing scores JSON, skipping any spec that
                        already has a non-null weighted_score. Combine with
                        --retry-on-limit to continue a run after a restart.
@@ -788,6 +845,8 @@ Examples:
     dryRun,
     retryOnLimit,
     maxLimitRetries,
+    maxTransientRetries,
+    keepAwake,
     resumePath,
   };
 }
@@ -917,16 +976,25 @@ async function main(): Promise<void> {
 
   const results: RunResult[] = []; // detailed results produced this session
 
+  // Keep the laptop awake for the whole run (released in the finally below).
+  const releaseKeepAwake = config.keepAwake ? startKeepAwake() : () => {};
+  try {
+
   for (const { spec, model } of matrix) {
     if (hasScore(spec, model)) {
       log(`Skipping ${spec} × ${model} — already scored`);
       continue;
     }
 
-    // Run the combo, optionally waiting out usage limits and retrying. A
-    // non-limit failure (compile/parse/other) is recorded once and we move on;
-    // a fatal auth/credit error aborts the whole run since waiting can't fix it.
-    let attempt = 0;
+    // Run the combo with two independent recovery paths:
+    //  - a usage limit waits out the 5h window and retries (capped);
+    //  - any other (non-fatal) failure is treated as transient — most often a
+    //    connection broken by the laptop suspending mid-call — and retried
+    //    immediately after a short backoff (capped);
+    //  - a fatal auth/credit error aborts, since neither waiting nor retrying
+    //    can fix it.
+    let limitWaits = 0;
+    let transientRetries = 0;
     while (true) {
       const result = await runSingle(spec, model, config.evalModel);
       results.push(result);
@@ -948,22 +1016,37 @@ async function main(): Promise<void> {
       if (config.retryOnLimit && !isLimit && result.failure?.ambiguous && result.implementationError) {
         log(`  ${spec}: empty-output failure — probing account for a usage limit...`);
         isLimit = await probeRateLimit(resolveModel(model).modelArg);
-        log(`  Probe: ${isLimit ? "usage limit IS active — will wait" : "not limited — treating as a genuine failure"}`);
+        log(`  Probe: ${isLimit ? "usage limit IS active — will wait" : "not limited — treating as transient"}`);
       }
 
-      if (config.retryOnLimit && isLimit && attempt < config.maxLimitRetries) {
-        attempt++;
-        log(`  Usage limit on ${spec} × ${model} (attempt ${attempt}/${config.maxLimitRetries}).`);
-        await waitForReset(result.failure?.resetAt ?? null);
-        continue; // retry the same combo with a fresh window
+      if (isLimit) {
+        if (config.retryOnLimit && limitWaits < config.maxLimitRetries) {
+          limitWaits++;
+          log(`  Usage limit on ${spec} × ${model} (wait ${limitWaits}/${config.maxLimitRetries}).`);
+          await waitForReset(result.failure?.resetAt ?? null);
+          continue; // retry the same combo with a fresh window
+        }
+        if (config.retryOnLimit) log(`  Giving up on ${spec} × ${model} after ${limitWaits} limit waits.`);
+        upsert(summaryRow(result));
+        break;
       }
-      // Out of retries, or a non-retryable failure: record and move on.
-      if (isLimit && attempt >= config.maxLimitRetries) {
-        log(`  Giving up on ${spec} × ${model} after ${attempt} limit waits.`);
+
+      // Non-limit failure: self-heal with a few immediate retries (covers
+      // sleep-broken connections, transient network errors, a flaky eval parse).
+      if (transientRetries < config.maxTransientRetries) {
+        transientRetries++;
+        log(`  ${spec} × ${model} failed (non-limit) — transient retry ${transientRetries}/${config.maxTransientRetries} in ${TRANSIENT_BACKOFF_MS / 1000}s.`);
+        await sleep(TRANSIENT_BACKOFF_MS);
+        continue;
       }
+      log(`  Giving up on ${spec} × ${model} after ${transientRetries} transient retries.`);
       upsert(summaryRow(result));
       break;
     }
+  }
+
+  } finally {
+    releaseKeepAwake();
   }
 
   // Mirror the final scores into results/ for archival, matching prior behaviour.
