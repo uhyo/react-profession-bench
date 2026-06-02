@@ -1010,11 +1010,16 @@ async function main(): Promise<void> {
       }
 
       // Decide whether this is a usage limit. Text-matched limits are taken at
-      // face value; the silent empty-output signature is confirmed with a live
-      // probe, since the CLI emits no message to match on.
+      // face value; for everything else we probe the account directly. The CLI
+      // gives us nothing reliable to match on — a limit may surface with empty
+      // output OR with a partial line printed before it died mid-call (observed:
+      // a spec ran 12 min, then the limit hit and it failed with partial
+      // output). So probe on ANY non-limit failure, not just the empty-output
+      // signature — otherwise a limit-with-output is mistaken for transient and
+      // the run burns retries/passes fast-failing instead of waiting it out.
       let isLimit = kind === "rate_limit";
-      if (config.retryOnLimit && !isLimit && result.failure?.ambiguous && result.implementationError) {
-        log(`  ${spec}: empty-output failure — probing account for a usage limit...`);
+      if (config.retryOnLimit && !isLimit) {
+        log(`  ${spec}: non-limit failure — probing account for a usage limit...`);
         isLimit = await probeRateLimit(resolveModel(model).modelArg);
         log(`  Probe: ${isLimit ? "usage limit IS active — will wait" : "not limited — treating as transient"}`);
       }
