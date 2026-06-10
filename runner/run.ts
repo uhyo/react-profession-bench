@@ -384,17 +384,38 @@ export function classifyFailure(err: unknown): FailureInfo {
 // same silent way the real run did. Used to disambiguate the empty-output
 // code-1 failure signature (see FailureInfo.ambiguous) — far more reliable than
 // pattern-matching an error message the CLI doesn't emit.
+// One cheap, no-tools request used by both probes below. Returns the trimmed
+// stdout (empty string when the account is being throttled — the CLI exits 0
+// with no text under a usage limit), or throws on a hard failure.
+async function cheapProbe(modelArg: string): Promise<string> {
+  const { stdout } = await exec("claude", [
+    "--print", "--model", modelArg,
+    "--max-budget-usd", "1", "--no-session-persistence", "--tools", "",
+  ], { timeout: 120_000, stdin: "Reply with the single word: ok" });
+  return stdout.trim();
+}
+
 async function probeRateLimit(modelArg: string): Promise<boolean> {
   try {
-    const { stdout } = await exec("claude", [
-      "--print", "--model", modelArg,
-      "--max-budget-usd", "1", "--no-session-persistence", "--tools", "",
-    ], { timeout: 120_000, stdin: "Reply with the single word: ok" });
-    return stdout.trim().length === 0; // empty success == still being throttled
+    return (await cheapProbe(modelArg)).length === 0; // empty success == throttled
   } catch (e) {
     // Probe failed too. If it's an auth/credit problem, waiting won't help, so
     // report "not a limit" and let the caller record the original failure.
     return classifyFailure(e).kind !== "fatal";
+  }
+}
+
+// Inverse of probeRateLimit, used to wake early from a usage-limit wait: returns
+// true only when the account is demonstrably healthy *right now* (the probe got
+// a real, non-empty answer). Any error or empty/throttled response → false, so
+// the caller keeps waiting. The window refills on a rolling basis and often
+// sooner than the conservative 5h fallback, so polling this lets us resume the
+// moment it's actually back instead of sleeping out the whole cap.
+async function probeAccountHealthy(modelArg: string): Promise<boolean> {
+  try {
+    return (await cheapProbe(modelArg)).length > 0;
+  } catch {
+    return false;
   }
 }
 
@@ -404,34 +425,47 @@ async function probeRateLimit(modelArg: string): Promise<boolean> {
 const DEFAULT_LIMIT_WAIT_MS = 5 * 60 * 60 * 1000 + 5 * 60 * 1000; // 5h05m
 const RESET_BUFFER_MS = 3 * 60 * 1000; // 3m
 const HEARTBEAT_MS = 10 * 60 * 1000; // log progress every 10m while sleeping
+const PROBE_WAKE_INTERVAL_MS = 5 * 60 * 1000; // re-probe the account every 5m during a wait
 const TRANSIENT_BACKOFF_MS = 30 * 1000; // pause before retrying a non-limit failure
 
 async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// Block until the usage window should have refilled, emitting periodic
-// heartbeats so a long unattended sleep is observable in the log.
-async function waitForReset(resetAt: Date | null): Promise<void> {
-  let waitMs: number;
+// Wait out a usage limit, but resume the *moment* the window actually refills
+// rather than sleeping a fixed duration. The rolling 5h window often comes back
+// sooner than any stated/fallback time (observed: 3.4h vs a 5h05m fallback), so
+// every PROBE_WAKE_INTERVAL_MS we issue a cheap health probe and resume on the
+// first success. The computed time (provider reset + buffer, else the 5h05m
+// fallback) becomes a *hard cap*: we never wait longer than that, and never
+// shorter than RESET_BUFFER_MS. modelArg is the model to probe with.
+async function waitForReset(resetAt: Date | null, modelArg: string): Promise<void> {
+  let capMs: number;
   if (resetAt) {
-    waitMs = resetAt.getTime() - Date.now() + RESET_BUFFER_MS;
-    if (waitMs < RESET_BUFFER_MS) waitMs = RESET_BUFFER_MS; // already past / clock skew
+    capMs = resetAt.getTime() - Date.now() + RESET_BUFFER_MS;
+    if (capMs < RESET_BUFFER_MS) capMs = RESET_BUFFER_MS; // already past / clock skew
   } else {
-    waitMs = DEFAULT_LIMIT_WAIT_MS;
+    capMs = DEFAULT_LIMIT_WAIT_MS;
   }
-  const resumeAt = new Date(Date.now() + waitMs);
-  log(`  Usage limit hit. Waiting ~${Math.round(waitMs / 60000)} min` +
-    `${resetAt ? ` (provider reset ${resetAt.toISOString().slice(11, 16)} UTC)` : ""}` +
-    `, resuming at ${resumeAt.toISOString().slice(11, 16)} UTC...`);
-  let remaining = waitMs;
-  while (remaining > 0) {
-    const chunk = Math.min(HEARTBEAT_MS, remaining);
-    await sleep(chunk);
-    remaining -= chunk;
-    if (remaining > 0) log(`  ...waiting, ${Math.round(remaining / 60000)} min left`);
+  const deadline = Date.now() + capMs;
+  log(`  Usage limit hit. Waiting up to ~${Math.round(capMs / 60000)} min` +
+    `${resetAt ? ` (provider reset ${resetAt.toISOString().slice(11, 16)} UTC)` : " (no reset time — probing to wake early)"}` +
+    `, hard cap ${new Date(deadline).toISOString().slice(11, 16)} UTC...`);
+  let lastHeartbeat = Date.now();
+  while (Date.now() < deadline) {
+    const remaining = deadline - Date.now();
+    await sleep(Math.min(PROBE_WAKE_INTERVAL_MS, remaining));
+    if (Date.now() >= deadline) break;
+    if (await probeAccountHealthy(modelArg)) {
+      log(`  Probe succeeded — window refilled early, resuming now.`);
+      return;
+    }
+    if (Date.now() - lastHeartbeat >= HEARTBEAT_MS) {
+      log(`  ...still limited, ~${Math.round((deadline - Date.now()) / 60000)} min left until hard cap`);
+      lastHeartbeat = Date.now();
+    }
   }
-  log(`  Window should be refilled — resuming.`);
+  log(`  Hard cap reached — window should be refilled, resuming.`);
 }
 
 // Hold the Windows host awake for the lifetime of the run (WSL only). The
@@ -1029,7 +1063,7 @@ async function main(): Promise<void> {
         if (config.retryOnLimit && limitWaits < config.maxLimitRetries) {
           limitWaits++;
           log(`  Usage limit on ${spec} × ${model} (wait ${limitWaits}/${config.maxLimitRetries}).`);
-          await waitForReset(result.failure?.resetAt ?? null);
+          await waitForReset(result.failure?.resetAt ?? null, resolveModel(model).modelArg);
           continue; // retry the same combo with a fresh window
         }
         if (config.retryOnLimit) log(`  Giving up on ${spec} × ${model} after ${limitWaits} limit waits.`);
