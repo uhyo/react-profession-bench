@@ -6,160 +6,164 @@ Unlike general coding benchmarks, this project specifically targets React-specif
 
 ## How It Works
 
-The benchmark runs in three phases:
+Each benchmark run is one `(spec × model)` combination and proceeds in two phases.
 
 ### Phase 1: Implementation
 
 An LLM agent receives:
 
-- A **spec** describing a small React application's behavior and requirements (never hinting at implementation patterns)
-- A **data model** with TypeScript type definitions
-- A **scaffold** project (Vite + React 19 + TypeScript) with an empty `src/App.tsx`
+- A **spec** (`spec.md`) describing a small React application's behavior and requirements (never hinting at implementation patterns)
+- A **data model** (`data-model.ts`) with TypeScript type definitions (and any seed data)
 
-The agent implements the application. No external UI or state management libraries are allowed — the benchmark measures React knowledge, not library knowledge.
+The runner copies the **scaffold** project (Vite + React 19 + TypeScript, with an empty `src/App.tsx`) into a fresh sandbox under the OS temp dir, runs `npm install`, then hands the agent file tools (`Read`, `Write`, `Edit`, `Bash`, `Glob`, `Grep`) to implement the app. Specs forbid external UI/state libraries — the benchmark measures React knowledge, not library knowledge (the scaffold ships only `react`/`react-dom`).
 
-### Phase 2: Static Analysis
+After implementation the runner runs `tsc -b --noEmit` once and records whether the code compiles (`compiles: true/false`). **This is recorded, not scored** — it does not feed the numeric score.
 
-The submitted code is analyzed automatically via AST inspection:
+### Phase 2: LLM-Judge Evaluation
 
-- **Anti-pattern detection** — flags known bad patterns (e.g., `useEffect` for derived state, missing cleanup, index-as-key in dynamic lists)
-- **Best-practice checks** — verifies presence of custom hooks, typed props, semantic HTML, controlled inputs, accessibility labels
-- **Structural metrics** — component count, `useEffect` count, `any` type count, average component size
+A separate LLM (the **eval model**, default `sonnet`) scores the submitted code in a **single** call. It receives:
 
-Each anti-pattern has a severity (Critical / Major / Minor). The static score starts at 100 and deducts per finding.
+- the original spec,
+- the full submitted source,
+- the shared rubric (`evaluation/rubric.md`),
+- the anti-pattern catalog (`evaluation/anti-patterns.md`) — given as a reference for the judge to apply itself; there is **no separate AST/static-analysis pass**,
+- the per-spec **expected signals** (`evaluation/<spec>/expected-signals.json`), which include this spec's rubric weights.
 
-### Phase 3: LLM-Judge Evaluation
+The judge returns JSON: a 1–5 score (with justification) for each of six categories, the anti-patterns it observed, strengths, and a single `weighted_score`.
 
-A separate LLM evaluates the code against a structured rubric with six categories:
+| Category | What It Measures |
+|---|---|
+| State Architecture | Minimal state, no duplication, derived values computed not stored |
+| Effect Hygiene | Effects used only for true side effects, proper cleanup and deps |
+| Component Design | Single responsibility, proper composition, right abstraction level |
+| TypeScript Quality | Precise types, no `any`, discriminated unions, types as documentation |
+| Performance Awareness | Justified memoization, stable references, no over-optimization |
+| Accessibility & Semantics | Semantic HTML, labels, ARIA, keyboard navigation |
 
-| Category | Weight | What It Measures |
-|---|---|---|
-| State Architecture | 25% | Minimal state, no duplication, derived values computed not stored |
-| Effect Hygiene | 20% | Effects used only for true side effects, proper cleanup and deps |
-| Component Design | 20% | Single responsibility, proper composition, right abstraction level |
-| TypeScript Quality | 15% | Precise types, no `any`, discriminated unions, types as documentation |
-| Performance Awareness | 10% | Justified memoization, stable references, no over-optimization |
-| Accessibility & Semantics | 10% | Semantic HTML, labels, ARIA, keyboard navigation |
+### Scoring
 
-Each category is scored 1–5. The judge also receives the static analysis results to anchor its evaluation.
-
-### Final Score
+The score for a run **is the judge's `weighted_score`** — there is no static/judge blend. Each category's 1–5 score is combined using that spec's weights:
 
 ```
-Final Score = (Static Score × 0.4) + (LLM Judge Score × 0.6)
+weighted_score = Σ(category_score × weight) / 5      # weights sum to 100, scores are 1–5
 ```
 
-The LLM judge runs 3 times; the median is used to reduce variance.
+All 5s → **100**; all 1s → **20**. So every score lands in **20–100**.
+
+**Weights are per-spec, not fixed.** `rubric.md` documents default weights (25/20/20/15/10/10), but each spec overrides them via `rubric_weights` in its `expected-signals.json` to emphasize the skills it targets. For example:
+
+| Spec | state | effect | component | TS | perf | a11y |
+|---|--:|--:|--:|--:|--:|--:|
+| 001 Event Registration Form | 25 | 20 | 20 | 15 | 10 | 10 |
+| 002 Data Dashboard | 10 | 5 | 25 | 20 | **30** | 10 |
+| 013 Settings Undo/Redo | **30** | 10 | 20 | 20 | 10 | 10 |
+
+### Variance and the n=3 methodology
+
+The judge runs **once per implementation** — the runner does **not** take a median. Because both implementation and judging are stochastic, a single per-spec score swings by **±10–15 points** between runs, which is enough to flip generation-level conclusions. So the methodology is:
+
+1. Run the **whole 13-spec benchmark 3 times** (n=3), each into its own scores file (see the driver below).
+2. Average each spec's score across the 3 samples, then average across the 13 specs for the benchmark mean.
+3. Treat a difference as a **real improvement only when the per-spec ranges don't overlap** (the new minimum beats the old maximum); otherwise it's within noise.
+
+When comparing two conditions, run **both** at n=3. See [`scores/`](scores/) for completed experiment data and reports.
 
 ## Running the Benchmark
 
-Prerequisites: [Node.js](https://nodejs.org/) 22+ and [Claude Code](https://claude.ai/claude-code) CLI.
+**Prerequisites:** [Node.js](https://nodejs.org/) **24+** (the runner is TypeScript executed directly via Node's type stripping — no build step) and the [Claude Code](https://claude.ai/claude-code) CLI authenticated. Copilot/Gemini models additionally require the `copilot` CLI.
 
 ```bash
-# Run all specs against all default models (sonnet, opus, haiku)
+# Run all specs against the default models (sonnet, opus, haiku)
 node runner/run.ts
 
-# Run a specific spec against a specific model
+# One spec, one model
 node runner/run.ts --spec 001-event-registration-form --model sonnet
 
-# Run multiple specs and models
-node runner/run.ts --spec 001-event-registration-form --spec 002-data-dashboard --model sonnet --model opus
+# Several specs and models (flags are repeatable)
+node runner/run.ts --spec 001-event-registration-form --spec 002-data-dashboard --model opus --model haiku
 
-# Preview what would run without executing
+# Use a different judge
+node runner/run.ts --model opus --eval-model sonnet
+
+# Preview the run matrix without executing
 node runner/run.ts --dry-run
+
+# Full flag list
+node runner/run.ts --help
 ```
 
-Results are written to `results/` (gitignored), including:
-- Per-run working directories with the implemented source code
-- Per-run `evaluation-result.json` with detailed scores
-- A `summary_*.json` file with the scorecard across all runs
+### Models
+
+Models are referenced by short **alias**; the backend (Claude CLI / Copilot / Gemini) is deduced from the alias. The registry (`MODEL_REGISTRY` in `runner/run.ts`, also printed by `--help`) includes:
+
+- **Claude aliases** — `sonnet`, `opus`, `haiku` (track latest), and version-pinned ones like `opus-4.8`, `fable-5`, `haiku-4.5`.
+- **Effort variants** — e.g. `opus-4.8-max`, `fable-5-max`, which pass `--effort max`. Max effort costs far more (see the budget note below).
+- **Copilot/Gemini** — e.g. `gpt-5.4`, `gemini-3-pro-preview`.
+
+To benchmark a new Claude model, add one line to `MODEL_REGISTRY`.
+
+### Long, unattended runs (usage limits, sleep, the driver)
+
+A full sweep — especially at `--effort max` — far exceeds one 5-hour usage window, and on a laptop the host may sleep or reboot mid-run. The runner is built to survive all of this:
+
+- **Incremental scores + `--resume <file>`** — every spec's result is written immediately, and `--resume` skips any spec that already has a score. After any kill, re-run the same command to continue.
+- **`--retry-on-limit`** — on a usage limit, wait for the window to refill and retry. Instead of sleeping a fixed ~5h, it **probes to wake**: it polls a cheap health check every ~5 min (capped by the provider's reset time or a 5h05m fallback) and resumes the moment the window is actually back.
+- **`--max-transient-retries <n>`** (default 2) — a non-limit failure (e.g. a connection broken by the host sleeping) gets a few immediate short-backoff retries before being recorded.
+- **`--keep-awake`** — holds the Windows host awake via `SetThreadExecutionState` (WSL only). Inhibits idle-sleep; lid-close still sleeps, so the transient self-heal is the real guarantee.
+- **`--max-budget-usd <n>`** — per-implementation spend cap. Defaults scale by effort: **$5** normally, **$15** for `effort=max` (max effort on the heaviest specs blows a flat $5 mid-run). A budget overage is detected as its own deterministic failure and recorded without futile retries.
+
+**The driver — `runner/run-samples.sh`** — is what you use for n=3 without babysitting. It runs N whole-benchmark samples sequentially, each into its own scores file, re-invoking `--resume` (up to 6 passes) until each file reaches a full 13/13:
+
+```bash
+# Three full samples → three scores files, fully unattended
+runner/run-samples.sh opus-4.8-max \
+  scores/multi_opus-4.8-max-s1.json \
+  scores/multi_opus-4.8-max-s2.json \
+  scores/multi_opus-4.8-max-s3.json
+```
+
+It passes `--retry-on-limit --keep-awake --max-transient-retries 3` for you. For a run that must outlive your shell, launch it detached:
+
+```bash
+setsid nohup runner/run-samples.sh fable-5-max \
+  scores/multi_fable-5-max-s1.json scores/multi_fable-5-max-s2.json scores/multi_fable-5-max-s3.json \
+  > /tmp/run.log 2>&1 &
+```
+
+If the machine hard-reboots (full process kill), just relaunch the same command — `--resume` tops each file up from where it stopped.
+
+### Outputs
+
+- **`results/`** (gitignored) — raw per-run artifacts: a working directory with the implemented source, the `evaluation-result.json`, and a `summary_*.json` scorecard.
+- **`scores/`** (committed) — the curated JSON the driver writes: an array of per-`(spec, model)` rows, each with `weighted_score`, the six 1–5 `categories`, `compiles`, and `timestamp`. One file per sample; reports in this directory aggregate them.
 
 ## Project Structure
 
 ```
 react-profession-bench/
 ├── README.md
-├── specs/                          # Benchmark specifications (given to implementer)
-│   ├── 001-event-registration-form/
-│   │   ├── spec.md                 # Behavioral spec
-│   │   └── data-model.ts           # TypeScript types
-│   ├── 002-data-dashboard/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Types + static data (200 contacts, 500 messages)
-│   ├── 003-quiz-builder/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Discriminated union types for question types
-│   ├── 004-user-profile-browser/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Types + simulated async API with delays/errors
-│   ├── 005-system-status-dashboard/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Types + event bus with subscribe/getSnapshot API
-│   ├── 006-notification-activity-feed/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Types + simulated WebSocket + sound stub
-│   ├── 007-sns-feed/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Types + simulated like/fetch API
-│   ├── 008-form-actions/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Types + simulated survey submission API
-│   ├── 009-reusable-components/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Task types + simulated CRUD API
-│   ├── 010-tree-file-explorer/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Tree node discriminated union + file tree data
-│   ├── 011-tooltip-popover/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # User table data (30 rows)
-│   ├── 012-multi-tab-editor/
-│   │   ├── spec.md
-│   │   └── data-model.ts           # Document types + sample content
-│   └── 013-settings-undo-redo/
-│       ├── spec.md
-│       └── data-model.ts           # Settings types + defaults + color/width maps
-├── scaffold/                       # Template project given to the LLM
-│   ├── package.json
+├── specs/                       # Benchmark specifications (given to the implementer)
+│   └── <NNN-name>/
+│       ├── spec.md              # Behavioral spec (no implementation hints)
+│       └── data-model.ts        # TypeScript types (+ any seed data)
+├── scaffold/                    # Template project copied into each sandbox
+│   ├── package.json             # react + react-dom only
 │   ├── tsconfig.json
 │   ├── vite.config.ts
 │   ├── index.html
-│   └── src/
-│       ├── main.tsx
-│       └── App.tsx
-├── evaluation/                     # Evaluation criteria (NOT shown to implementer)
-│   ├── rubric.md                   # LLM-judge scoring rubric (per-spec weights)
-│   ├── anti-patterns.md           # Catalog of detected anti-patterns
-│   ├── 001-event-registration-form/
-│   │   └── expected-signals.json   # Spec-specific signals + rubric weights
-│   ├── 002-data-dashboard/
-│   │   └── expected-signals.json
-│   ├── 003-quiz-builder/
-│   │   └── expected-signals.json
-│   ├── 004-user-profile-browser/
-│   │   └── expected-signals.json
-│   ├── 005-system-status-dashboard/
-│   │   └── expected-signals.json
-│   ├── 006-notification-activity-feed/
-│   │   └── expected-signals.json
-│   ├── 007-sns-feed/
-│   │   └── expected-signals.json
-│   ├── 008-form-actions/
-│   │   └── expected-signals.json
-│   ├── 009-reusable-components/
-│   │   └── expected-signals.json
-│   ├── 010-tree-file-explorer/
-│   │   └── expected-signals.json
-│   ├── 011-tooltip-popover/
-│   │   └── expected-signals.json
-│   ├── 012-multi-tab-editor/
-│   │   └── expected-signals.json
-│   └── 013-settings-undo-redo/
-│       └── expected-signals.json
-├── runner/                         # Orchestration engine
-│   └── run.ts                     # Main runner script
+│   └── src/{main.tsx, App.tsx}  # App.tsx starts empty
+├── evaluation/                  # Evaluation criteria (NOT shown to the implementer)
+│   ├── rubric.md                # Shared 1–5 rubric + weighting formula
+│   ├── anti-patterns.md         # Catalog the judge applies
+│   └── <NNN-name>/
+│       └── expected-signals.json # Per-spec rubric_weights + signals to look for
+├── runner/
+│   ├── run.ts                   # Orchestration engine (one spec×model per invocation)
+│   └── run-samples.sh           # Driver: N whole-benchmark samples for n=3
+├── scores/                      # Committed scores files + experiment reports
 └── docs/
-    └── writing-specs.md           # Guide for adding new specs
+    ├── writing-specs.md         # Guide for adding new specs
+    └── spec-intents/            # Per-spec design intent notes
 ```
 
 ## Specs
@@ -195,7 +199,7 @@ Each spec has its own rubric weight profile, emphasizing different React skills.
 
 ## Evaluation Details
 
-See [`evaluation/rubric.md`](evaluation/rubric.md) for the full scoring rubric and [`evaluation/anti-patterns.md`](evaluation/anti-patterns.md) for the catalog of detected anti-patterns.
+See [`evaluation/rubric.md`](evaluation/rubric.md) for the full 1–5 rubric and weighting formula, and [`evaluation/anti-patterns.md`](evaluation/anti-patterns.md) for the catalog of anti-patterns the judge applies.
 
 ## Contributing
 
