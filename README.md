@@ -17,7 +17,7 @@ An LLM agent receives:
 
 The runner copies the **scaffold** project (Vite + React 19 + TypeScript, with an empty `src/App.tsx`) into a fresh sandbox under the OS temp dir, runs `npm install`, then hands the agent file tools (`Read`, `Write`, `Edit`, `Bash`, `Glob`, `Grep`) to implement the app. Specs forbid external UI/state libraries — the benchmark measures React knowledge, not library knowledge (the scaffold ships only `react`/`react-dom`).
 
-After implementation the runner runs `tsc -b --noEmit` once and records whether the code compiles (`compiles: true/false`). **This is recorded, not scored** — it does not feed the numeric score.
+After implementation the runner runs `tsc -b --noEmit` once and records whether the code compiles (`compiles: true/false`). This is captured alongside the result for reference; the numeric score comes entirely from Phase 2.
 
 ### Phase 2: LLM-Judge Evaluation
 
@@ -26,7 +26,7 @@ A separate LLM (the **eval model**, default `sonnet`) scores the submitted code 
 - the original spec,
 - the full submitted source,
 - the shared rubric (`evaluation/rubric.md`),
-- the anti-pattern catalog (`evaluation/anti-patterns.md`) — given as a reference for the judge to apply itself; there is **no separate AST/static-analysis pass**,
+- the anti-pattern catalog (`evaluation/anti-patterns.md`) — a reference the judge applies itself while reading the code,
 - the per-spec **expected signals** (`evaluation/<spec>/expected-signals.json`), which include this spec's rubric weights.
 
 The judge returns JSON: a 1–5 score (with justification) for each of six categories, the anti-patterns it observed, strengths, and a single `weighted_score`.
@@ -42,7 +42,7 @@ The judge returns JSON: a 1–5 score (with justification) for each of six categ
 
 ### Scoring
 
-The score for a run **is the judge's `weighted_score`** — there is no static/judge blend. Each category's 1–5 score is combined using that spec's weights:
+The score for a run **is the judge's `weighted_score`**. Each category's 1–5 score is combined using that spec's weights:
 
 ```
 weighted_score = Σ(category_score × weight) / 5      # weights sum to 100, scores are 1–5
@@ -50,7 +50,7 @@ weighted_score = Σ(category_score × weight) / 5      # weights sum to 100, sco
 
 All 5s → **100**; all 1s → **20**. So every score lands in **20–100**.
 
-**Weights are per-spec, not fixed.** `rubric.md` documents default weights (25/20/20/15/10/10), but each spec overrides them via `rubric_weights` in its `expected-signals.json` to emphasize the skills it targets. For example:
+**Each spec sets its own weights.** `rubric.md` documents default weights (25/20/20/15/10/10); each spec overrides them via `rubric_weights` in its `expected-signals.json` to emphasize the skills it targets. For example:
 
 | Spec | state | effect | component | TS | perf | a11y |
 |---|--:|--:|--:|--:|--:|--:|
@@ -60,7 +60,7 @@ All 5s → **100**; all 1s → **20**. So every score lands in **20–100**.
 
 ### Variance and the n=3 methodology
 
-The judge runs **once per implementation** — the runner does **not** take a median. Because both implementation and judging are stochastic, a single per-spec score swings by **±10–15 points** between runs, which is enough to flip generation-level conclusions. So the methodology is:
+The judge runs **once per implementation**. Because both implementation and judging are stochastic, a single per-spec score swings by **±10–15 points** between runs, which is enough to flip generation-level conclusions. So the methodology is:
 
 1. Run the **whole 13-spec benchmark 3 times** (n=3), each into its own scores file (see the driver below).
 2. Average each spec's score across the 3 samples, then average across the 13 specs for the benchmark mean.
