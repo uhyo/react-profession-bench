@@ -17,7 +17,20 @@ const SCORES_DIR = join(ROOT, "scores");
 // Source artifacts are copied back to RESULTS_DIR after each run.
 const SANDBOX_ROOT = join(tmpdir(), "react-profession-bench");
 
-const MAX_BUDGET_USD = "5";
+// Per-implementation spend cap (USD), passed to `claude --max-budget-usd`.
+// effort=max burns far more, and the heaviest spec (009-reusable-components,
+// which emits the most files) repeatedly blew a flat $5 cap *mid-run* at max
+// effort — the CLI then exits non-zero with "Error: Exceeded USD budget", which
+// is deterministic at a given budget+effort (retrying or waiting never helps).
+// So scale the default by effort, and allow an explicit --max-budget-usd override.
+const MAX_BUDGET_USD_DEFAULT = "5";
+const MAX_BUDGET_USD_MAX_EFFORT = "15";
+let budgetOverrideUsd: string | null = null; // set by --max-budget-usd
+
+function budgetForSpec(spec: ModelSpec): string {
+  if (budgetOverrideUsd) return budgetOverrideUsd;
+  return spec.effort === "max" ? MAX_BUDGET_USD_MAX_EFFORT : MAX_BUDGET_USD_DEFAULT;
+}
 
 // --- Model Registry ---
 
@@ -81,7 +94,7 @@ function getImplementationArgs(spec: ModelSpec): string[] {
         "--print",
         "--model", spec.modelArg,
         "--permission-mode", "bypassPermissions",
-        "--max-budget-usd", MAX_BUDGET_USD,
+        "--max-budget-usd", budgetForSpec(spec),
         "--no-session-persistence",
         "--allowedTools", "Read", "Write", "Edit", "Bash", "Glob", "Grep",
       ];
@@ -321,7 +334,7 @@ function exec(
 
 // --- Usage-limit / failure classification ---
 
-type FailureKind = "rate_limit" | "fatal" | "other";
+type FailureKind = "rate_limit" | "fatal" | "budget" | "other";
 
 interface FailureInfo {
   kind: FailureKind;
@@ -342,6 +355,12 @@ const RATE_LIMIT_MARKERS = /usage limit reached|rate.?limit|too many requests|\b
 // Not worth waiting on — these need human action, so retrying after a sleep
 // would just burn another window.
 const FATAL_MARKERS = /credit balance (?:is )?too low|invalid api key|please run \/login|oauth token (?:expired|revoked)|not logged in|authentication failed/i;
+// The CLI hit its --max-budget-usd cap mid-run and exited non-zero (message
+// "Error: Exceeded USD budget (N)" on stdout). Deterministic for a given
+// budget+spec+effort: neither a transient retry nor a usage-limit wait helps —
+// only a higher cap does. Must be distinguished from a usage limit (the account
+// is perfectly healthy, so a probe would wrongly green-light an immediate retry).
+const BUDGET_MARKERS = /exceeded\s+usd\s+budget/i;
 
 // Pull a concrete reset moment out of the failure text when the CLI provides
 // one. Recognises a trailing unix epoch (the `...reached|<epoch>` form Claude
@@ -371,6 +390,7 @@ export function classifyFailure(err: unknown): FailureInfo {
   const stderr = e?.stderr ?? "";
   const raw = [stdout, stderr, e?.message].filter(Boolean).join("\n");
   if (FATAL_MARKERS.test(raw)) return { kind: "fatal", resetAt: null };
+  if (BUDGET_MARKERS.test(raw)) return { kind: "budget", resetAt: null };
   if (RATE_LIMIT_MARKERS.test(raw)) return { kind: "rate_limit", resetAt: parseResetTime(raw) };
   // Observed in practice: a usage limit in --print mode exits non-zero with
   // *both* streams empty and no message. `code` is a number only for a real
@@ -823,6 +843,9 @@ function parseArgs(): RunConfig {
       case "--max-transient-retries":
         maxTransientRetries = Number(args[++i]);
         break;
+      case "--max-budget-usd":
+        budgetOverrideUsd = args[++i];
+        break;
       case "--keep-awake":
         keepAwake = true;
         break;
@@ -849,6 +872,9 @@ Options:
                        (e.g. a connection broken by the host sleeping, a
                        timeout, an unparseable evaluation) before recording it.
                        Short backoff between tries. Default: 2.
+  --max-budget-usd <n> Override the per-implementation spend cap. Default scales
+                       by effort: ${MAX_BUDGET_USD_DEFAULT} normally, ${MAX_BUDGET_USD_MAX_EFFORT} for effort=max
+                       (max effort on heavy specs blows a flat $5 mid-run).
   --keep-awake         Hold the Windows host awake for the duration (WSL only,
                        via SetThreadExecutionState). Blocks idle-sleep; does NOT
                        block lid-close sleep. No-op off WSL. Reverts on exit.
@@ -1043,6 +1069,17 @@ async function main(): Promise<void> {
         upsert(summaryRow(result));
         console.error(`Fatal error on ${spec} × ${model} (auth/credit) — cannot be fixed by waiting. Aborting.`);
         process.exit(1);
+      }
+
+      // Budget cap exceeded mid-run: deterministic at this budget+effort, so
+      // neither a transient retry nor a usage-limit wait can help — only a
+      // higher --max-budget-usd. Record it and move on so the rest of the
+      // matrix still runs; a later --resume with a raised cap retries it.
+      if (kind === "budget") {
+        log(`  ${spec} × ${model}: exceeded the --max-budget-usd cap (${budgetForSpec(resolveModel(model))}) mid-run. ` +
+          `Deterministic at this budget+effort — not retrying. Raise --max-budget-usd and re-run with --resume.`);
+        upsert(summaryRow(result));
+        break;
       }
 
       // Decide whether this is a usage limit. Text-matched limits are taken at
