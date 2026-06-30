@@ -50,6 +50,7 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "haiku":    { backend: "claude",  modelArg: "haiku" },
   // Claude CLI models (version-pinned, default effort = high)
   "sonnet-4.6": { backend: "claude", modelArg: "claude-sonnet-4-6" },
+  "sonnet-5":   { backend: "claude", modelArg: "claude-sonnet-5" },
   "opus-4.6":   { backend: "claude", modelArg: "claude-opus-4-6" },
   "opus-4.7":   { backend: "claude", modelArg: "claude-opus-4-7" },
   "opus-4.8":   { backend: "claude", modelArg: "claude-opus-4-8" },
@@ -75,7 +76,11 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
 };
 
 const DEFAULT_MODELS = ["sonnet", "opus", "haiku"];
-const DEFAULT_EVAL_MODEL = "sonnet";
+// The evaluator (LLM judge) is held CONSTANT across every report so scores stay
+// cross-comparable — see scores/REPORT_*.md and evaluation/rubric.md. Pin it to
+// the exact version, NOT the moving "sonnet" alias: when a new Sonnet ships, the
+// alias silently drifts and would change the judge mid-benchmark. Always 4.6.
+const DEFAULT_EVAL_MODEL = "sonnet-4.6";
 
 function resolveModel(name: string): ModelSpec {
   const spec = MODEL_REGISTRY[name];
