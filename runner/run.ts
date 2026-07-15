@@ -34,13 +34,15 @@ function budgetForSpec(spec: ModelSpec): string {
 
 // --- Model Registry ---
 
-type CliBackend = "claude" | "copilot";
-type ClaudeEffort = "low" | "medium" | "high" | "xhigh" | "max";
+type CliBackend = "claude" | "copilot" | "codex";
+// Reasoning-effort tiers. claude passes this via --effort; codex via the
+// `model_reasoning_effort` config key. Both CLIs share this vocabulary.
+type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
 interface ModelSpec {
   backend: CliBackend;
   modelArg: string; // value passed to --model
-  effort?: ClaudeEffort; // claude-only: value passed to --effort
+  effort?: Effort; // claude/codex: reasoning-effort tier
 }
 
 const MODEL_REGISTRY: Record<string, ModelSpec> = {
@@ -73,6 +75,15 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "gpt-5.4":           { backend: "copilot", modelArg: "gpt-5.4" },
   // Copilot CLI models (Google)
   "gemini-3-pro-preview": { backend: "copilot", modelArg: "gemini-3-pro-preview" },
+  // Codex CLI models (OpenAI GPT-5.6 — three tiers Sol/Terra/Luna, like
+  // Opus/Sonnet/Haiku). Effort set via `-c model_reasoning_effort`. We bench at
+  // effort=high and effort=max, so each tier gets a version-pinned key per effort.
+  "gpt-5.6-luna-high":  { backend: "codex", modelArg: "gpt-5.6-luna",  effort: "high" },
+  "gpt-5.6-luna-max":   { backend: "codex", modelArg: "gpt-5.6-luna",  effort: "max" },
+  "gpt-5.6-terra-high": { backend: "codex", modelArg: "gpt-5.6-terra", effort: "high" },
+  "gpt-5.6-terra-max":  { backend: "codex", modelArg: "gpt-5.6-terra", effort: "max" },
+  "gpt-5.6-sol-high":   { backend: "codex", modelArg: "gpt-5.6-sol",   effort: "high" },
+  "gpt-5.6-sol-max":    { backend: "codex", modelArg: "gpt-5.6-sol",   effort: "max" },
 };
 
 const DEFAULT_MODELS = ["sonnet", "opus", "haiku"];
@@ -111,6 +122,25 @@ function getImplementationArgs(spec: ModelSpec): string[] {
         "--model", spec.modelArg,
         "--allow-all",
       ];
+    case "codex": {
+      // `codex exec` runs non-interactively and reads the prompt from stdin.
+      // The sandbox workDir is a fresh copy in tmpdir (not a git repo), so we
+      // must --skip-git-repo-check. We already isolate the workDir ourselves, so
+      // bypass codex's own approval+sandbox to let it write files unattended
+      // (same posture as claude's bypassPermissions / copilot's --allow-all).
+      // --ephemeral avoids persisting session files. --color never keeps output
+      // clean for any error-text inspection.
+      const args = [
+        "exec",
+        "--model", spec.modelArg,
+        "--skip-git-repo-check",
+        "--dangerously-bypass-approvals-and-sandbox",
+        "--ephemeral",
+        "--color", "never",
+      ];
+      if (spec.effort) args.push("-c", `model_reasoning_effort="${spec.effort}"`);
+      return args;
+    }
   }
 }
 
@@ -128,6 +158,18 @@ function getEvaluationArgs(spec: ModelSpec): string[] {
       return [
         "--model", spec.modelArg,
         "--allow-all",
+      ];
+    case "codex":
+      // The evaluator is pinned to sonnet-4.6 (a claude backend), so this path
+      // is not exercised today; provided for completeness. `codex exec` reads
+      // the rubric prompt from stdin and prints the JSON verdict to stdout.
+      return [
+        "exec",
+        "--model", spec.modelArg,
+        "--skip-git-repo-check",
+        "--dangerously-bypass-approvals-and-sandbox",
+        "--ephemeral",
+        "--color", "never",
       ];
   }
 }
@@ -410,20 +452,42 @@ export function classifyFailure(err: unknown): FailureInfo {
 // same silent way the real run did. Used to disambiguate the empty-output
 // code-1 failure signature (see FailureInfo.ambiguous) — far more reliable than
 // pattern-matching an error message the CLI doesn't emit.
-// One cheap, no-tools request used by both probes below. Returns the trimmed
-// stdout (empty string when the account is being throttled — the CLI exits 0
-// with no text under a usage limit), or throws on a hard failure.
-async function cheapProbe(modelArg: string): Promise<string> {
-  const { stdout } = await exec("claude", [
-    "--print", "--model", modelArg,
-    "--max-budget-usd", "1", "--no-session-persistence", "--tools", "",
-  ], { timeout: 120_000, stdin: "Reply with the single word: ok" });
-  return stdout.trim();
+// One cheap, no-tools request used by both probes below. MUST hit the same
+// backend/account as the run being probed — otherwise a codex usage limit would
+// be tested against the (healthy) claude account and wrongly green-lit. Returns
+// the trimmed stdout (empty string when a claude account is throttled — that CLI
+// exits 0 with no text under a usage limit; codex instead exits non-zero with a
+// 429 ERROR, so it throws and the catch handles it), or throws on a hard failure.
+async function cheapProbe(spec: ModelSpec): Promise<string> {
+  const prompt = "Reply with the single word: ok";
+  switch (spec.backend) {
+    case "claude": {
+      const { stdout } = await exec("claude", [
+        "--print", "--model", spec.modelArg,
+        "--max-budget-usd", "1", "--no-session-persistence", "--tools", "",
+      ], { timeout: 120_000, stdin: prompt });
+      return stdout.trim();
+    }
+    case "codex": {
+      const { stdout } = await exec("codex", [
+        "exec", "--model", spec.modelArg,
+        "--skip-git-repo-check", "--dangerously-bypass-approvals-and-sandbox",
+        "--ephemeral", "--color", "never",
+      ], { timeout: 120_000, stdin: prompt });
+      return stdout.trim();
+    }
+    case "copilot": {
+      const { stdout } = await exec("copilot", [
+        "--model", spec.modelArg, "--allow-all",
+      ], { timeout: 120_000, stdin: prompt });
+      return stdout.trim();
+    }
+  }
 }
 
-async function probeRateLimit(modelArg: string): Promise<boolean> {
+async function probeRateLimit(spec: ModelSpec): Promise<boolean> {
   try {
-    return (await cheapProbe(modelArg)).length === 0; // empty success == throttled
+    return (await cheapProbe(spec)).length === 0; // empty success == throttled (claude)
   } catch (e) {
     // Probe failed too. If it's an auth/credit problem, waiting won't help, so
     // report "not a limit" and let the caller record the original failure.
@@ -437,9 +501,9 @@ async function probeRateLimit(modelArg: string): Promise<boolean> {
 // the caller keeps waiting. The window refills on a rolling basis and often
 // sooner than the conservative 5h fallback, so polling this lets us resume the
 // moment it's actually back instead of sleeping out the whole cap.
-async function probeAccountHealthy(modelArg: string): Promise<boolean> {
+async function probeAccountHealthy(spec: ModelSpec): Promise<boolean> {
   try {
-    return (await cheapProbe(modelArg)).length > 0;
+    return (await cheapProbe(spec)).length > 0;
   } catch {
     return false;
   }
@@ -465,7 +529,7 @@ async function sleep(ms: number): Promise<void> {
 // first success. The computed time (provider reset + buffer, else the 5h05m
 // fallback) becomes a *hard cap*: we never wait longer than that, and never
 // shorter than RESET_BUFFER_MS. modelArg is the model to probe with.
-async function waitForReset(resetAt: Date | null, modelArg: string): Promise<void> {
+async function waitForReset(resetAt: Date | null, spec: ModelSpec): Promise<void> {
   let capMs: number;
   if (resetAt) {
     capMs = resetAt.getTime() - Date.now() + RESET_BUFFER_MS;
@@ -482,7 +546,7 @@ async function waitForReset(resetAt: Date | null, modelArg: string): Promise<voi
     const remaining = deadline - Date.now();
     await sleep(Math.min(PROBE_WAKE_INTERVAL_MS, remaining));
     if (Date.now() >= deadline) break;
-    if (await probeAccountHealthy(modelArg)) {
+    if (await probeAccountHealthy(spec)) {
       log(`  Probe succeeded — window refilled early, resuming now.`);
       return;
     }
@@ -895,6 +959,7 @@ Examples:
   node runner/run.ts
   node runner/run.ts --spec 001-event-registration-form --model sonnet
   node runner/run.ts --model gpt-4.1
+  node runner/run.ts --model gpt-5.6-luna-high
   node runner/run.ts --model gpt-4.1 --model sonnet --model gemini-3-pro-preview
 `);
         process.exit(0);
@@ -1098,7 +1163,7 @@ async function main(): Promise<void> {
       let isLimit = kind === "rate_limit";
       if (config.retryOnLimit && !isLimit) {
         log(`  ${spec}: non-limit failure — probing account for a usage limit...`);
-        isLimit = await probeRateLimit(resolveModel(model).modelArg);
+        isLimit = await probeRateLimit(resolveModel(model));
         log(`  Probe: ${isLimit ? "usage limit IS active — will wait" : "not limited — treating as transient"}`);
       }
 
@@ -1106,7 +1171,7 @@ async function main(): Promise<void> {
         if (config.retryOnLimit && limitWaits < config.maxLimitRetries) {
           limitWaits++;
           log(`  Usage limit on ${spec} × ${model} (wait ${limitWaits}/${config.maxLimitRetries}).`);
-          await waitForReset(result.failure?.resetAt ?? null, resolveModel(model).modelArg);
+          await waitForReset(result.failure?.resetAt ?? null, resolveModel(model));
           continue; // retry the same combo with a fresh window
         }
         if (config.retryOnLimit) log(`  Giving up on ${spec} × ${model} after ${limitWaits} limit waits.`);
