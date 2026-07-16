@@ -61,6 +61,7 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   // Claude CLI models (effort variants)
   "opus-4.7-max": { backend: "claude", modelArg: "claude-opus-4-7", effort: "max" },
   "opus-4.8-max": { backend: "claude", modelArg: "claude-opus-4-8", effort: "max" },
+  "fable-5-low":  { backend: "claude", modelArg: "claude-fable-5", effort: "low" },
   "fable-5-max":  { backend: "claude", modelArg: "claude-fable-5", effort: "max" },
   // Copilot CLI models (OpenAI)
   "gpt-4.1":           { backend: "copilot", modelArg: "gpt-4.1" },
