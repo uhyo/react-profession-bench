@@ -1,0 +1,210 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T14:30:40.082Z",
+    "compiles": true,
+    "weighted_score": 77,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 2,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T14:35:36.484Z",
+    "compiles": true,
+    "weighted_score": 85,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "003-quiz-builder",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T14:40:18.198Z",
+    "compiles": true,
+    "weighted_score": 75,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "004-user-profile-browser",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T14:45:06.192Z",
+    "compiles": true,
+    "weighted_score": 73,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T14:49:39.872Z",
+    "compiles": true,
+    "weighted_score": 70,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T14:53:46.143Z",
+    "compiles": true,
+    "weighted_score": 60,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T14:58:28.614Z",
+    "compiles": true,
+    "weighted_score": 77,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T15:03:27.214Z",
+    "compiles": true,
+    "weighted_score": 74,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 2,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T15:07:33.821Z",
+    "compiles": true,
+    "weighted_score": 76,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T15:12:02.877Z",
+    "compiles": true,
+    "weighted_score": 74,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T15:15:39.116Z",
+    "compiles": true,
+    "weighted_score": 76,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T15:20:29.009Z",
+    "compiles": true,
+    "weighted_score": 84,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "fable-5-low",
+    "timestamp": "2026-07-16T15:24:17.511Z",
+    "compiles": true,
+    "weighted_score": 84,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  }
+]
