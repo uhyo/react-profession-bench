@@ -1,0 +1,210 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T19:12:56.240Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T19:24:33.401Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "003-quiz-builder",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T19:33:12.474Z",
+    "compiles": true,
+    "weighted_score": 75,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 3
+    },
+    "error": null
+  },
+  {
+    "spec": "004-user-profile-browser",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T19:43:43.365Z",
+    "compiles": true,
+    "weighted_score": 64,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 2,
+      "component_design": 2,
+      "typescript_quality": 5,
+      "performance_awareness": 2,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T19:52:11.303Z",
+    "compiles": true,
+    "weighted_score": 62,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 2,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T20:01:00.073Z",
+    "compiles": true,
+    "weighted_score": 71,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T20:08:54.123Z",
+    "compiles": true,
+    "weighted_score": 79,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T20:20:18.590Z",
+    "compiles": true,
+    "weighted_score": 91,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T20:30:07.200Z",
+    "compiles": true,
+    "weighted_score": 76,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T20:41:14.316Z",
+    "compiles": true,
+    "weighted_score": 76,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T20:48:55.123Z",
+    "compiles": true,
+    "weighted_score": 85,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T20:57:37.491Z",
+    "compiles": true,
+    "weighted_score": 96,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "gpt-5.6-sol-max",
+    "timestamp": "2026-07-15T21:06:31.389Z",
+    "compiles": true,
+    "weighted_score": 82,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  }
+]
