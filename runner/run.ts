@@ -46,19 +46,26 @@ interface ModelSpec {
 }
 
 const MODEL_REGISTRY: Record<string, ModelSpec> = {
-  // Claude CLI models (short aliases — track the latest version)
-  "sonnet":   { backend: "claude",  modelArg: "sonnet" },
-  "opus":     { backend: "claude",  modelArg: "opus" },
-  "haiku":    { backend: "claude",  modelArg: "haiku" },
-  // Claude CLI models (version-pinned, default effort = high)
-  "sonnet-4.6": { backend: "claude", modelArg: "claude-sonnet-4-6" },
-  "sonnet-5":   { backend: "claude", modelArg: "claude-sonnet-5" },
-  "opus-4.6":   { backend: "claude", modelArg: "claude-opus-4-6" },
-  "opus-4.7":   { backend: "claude", modelArg: "claude-opus-4-7" },
-  "opus-4.8":   { backend: "claude", modelArg: "claude-opus-4-8" },
-  "fable-5":    { backend: "claude", modelArg: "claude-fable-5" },
-  "haiku-4.5":  { backend: "claude", modelArg: "claude-haiku-4-5-20251001" },
-  // Claude CLI models (effort variants)
+  // Claude CLI models (short aliases — track the latest version).
+  // Effort is PINNED to "high" (see below); only the model version floats.
+  "sonnet":   { backend: "claude",  modelArg: "sonnet", effort: "high" },
+  "opus":     { backend: "claude",  modelArg: "opus",   effort: "high" },
+  "haiku":    { backend: "claude",  modelArg: "haiku",  effort: "high" },
+  // Claude CLI models (version-pinned). What every report calls a model's
+  // "default" is in fact effort=high — the claude CLI's current default. That
+  // default is NOT contractual: a future CLI release could change it and
+  // silently shift what "default" means, breaking comparability with 第1–13回
+  // (same trap as the eval-model pin, commit edcbc82). So pin effort="high"
+  // explicitly. This is a no-op against today's behaviour and a guard against
+  // drift; a genuine re-baseline would change these deliberately.
+  "sonnet-4.6": { backend: "claude", modelArg: "claude-sonnet-4-6", effort: "high" },
+  "sonnet-5":   { backend: "claude", modelArg: "claude-sonnet-5", effort: "high" },
+  "opus-4.6":   { backend: "claude", modelArg: "claude-opus-4-6", effort: "high" },
+  "opus-4.7":   { backend: "claude", modelArg: "claude-opus-4-7", effort: "high" },
+  "opus-4.8":   { backend: "claude", modelArg: "claude-opus-4-8", effort: "high" },
+  "fable-5":    { backend: "claude", modelArg: "claude-fable-5", effort: "high" },
+  "haiku-4.5":  { backend: "claude", modelArg: "claude-haiku-4-5-20251001", effort: "high" },
+  // Claude CLI models (non-high effort variants)
   "opus-4.7-max": { backend: "claude", modelArg: "claude-opus-4-7", effort: "max" },
   "opus-4.8-max": { backend: "claude", modelArg: "claude-opus-4-8", effort: "max" },
   "fable-5-low":  { backend: "claude", modelArg: "claude-fable-5", effort: "low" },
