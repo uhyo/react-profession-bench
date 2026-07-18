@@ -180,17 +180,20 @@ const handleClose = useCallback(() => setOpen(false), []);
 // ...every value memoized, every handler wrapped, no memoized consumers anywhere
 ```
 
-**Why it's bad:** Blanket `useMemo`/`useCallback` on cheap values and handlers that
-are never passed to memoized children adds indirection, dependency-array maintenance
-burden, and real memory/CPU overhead for zero rendering benefit. In the React
-Compiler era it also signals an outdated mental model of when memoization pays for
-itself. Memoization is justified by a measurable consumer: an expensive computation,
-or reference stability required by a memoized child / effect dependency.
+**Why it's bad:** The v2 scaffold has **React Compiler enabled** (see
+`scaffold-v2/vite.config.ts`), which memoizes components and values automatically.
+Manual `useMemo`/`useCallback`/`React.memo` is therefore redundant by default: it
+adds indirection and dependency-array maintenance burden for zero rendering
+benefit, and signals the author didn't read the build setup they were given. Even
+without a compiler, blanket wrapping of cheap values and handlers with no memoized
+consumer was already dead weight; with the compiler, near-zero manual memoization
+is the expected professional baseline. A rare justified exception must have a
+concrete need the compiler cannot cover.
 
-**How to recognize:** A high fraction of components' values and callbacks are
-wrapped in `useMemo`/`useCallback` while few or no children are wrapped in
-`React.memo` and no expensive computation is present. (v1 reports measured 60–69%
-wrap rates in weaker submissions vs ~19% in the strongest.)
+**How to recognize:** Any significant use of `useMemo`/`useCallback`/`React.memo`
+in v2 submissions — especially the blanket style where most values and callbacks
+are wrapped. (v1 reports measured 60–69% wrap rates in weaker submissions vs ~19%
+in the strongest, with zero being the compiler-aware ideal.)
 
 ---
 

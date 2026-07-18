@@ -26,7 +26,7 @@ don't write a checkpoint for, the benchmark doesn't measure.
 |---|---|---|
 | `core` | Task-completion basics: the feature exists and works as specified. | Everything above GPT-4.1-class stubs. |
 | `competent` | The correct, modern-React approach — v1's "tier-1/tier-2 anti-pattern avoided, right API chosen". | Current frontier models, usually. |
-| `expert` | Craft that current frontier models get wrong regularly: race/interruption handling, focus restoration, StrictMode-safe effects, cancellation of stale async work, optimistic rollback, correct `aria-live` semantics, state preservation across remount, render-phase state adjustment where it beats an effect (BP-09), platform APIs where they beat hand-rolled React. | ~40–60% pass rate for the best current conditions — **by construction**, see calibration below. |
+| `expert` | Craft that current frontier models get wrong regularly: race/interruption handling, focus restoration, StrictMode-safe effects, cancellation of stale async work, optimistic rollback, correct `aria-live` semantics, state preservation across remount, render-phase state adjustment where it beats an effect (BP-09), compiler-trusting absence of manual memoization (the v2 scaffold enables React Compiler), platform APIs where they beat hand-rolled React. | ~40–60% pass rate for the best current conditions — **by construction**, see calibration below. |
 
 Target mix (of total *weight*, not checkpoint count): roughly **25–35% core,
 35–45% competent, 25–35% expert**. The expert share is where headroom for future

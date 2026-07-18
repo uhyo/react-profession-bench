@@ -10,6 +10,11 @@ baseline and is itself frozen once v2-第1回 is published.)
 
 ## How v2 evaluation works
 
+- Submissions are built on the v2 scaffold, which has **React Compiler enabled**
+  (automatic memoization). Judge performance accordingly: manual
+  `useMemo`/`useCallback`/`React.memo` is redundant by default (AP-09), and
+  performance craft shows up instead in concurrent APIs, algorithmic choices, and
+  component structure.
 - Each spec ships a checkpoint file (`evaluation/v2/<spec>/checkpoints.json`,
   schema: `evaluation/v2/checkpoint-schema.json`): 15–25 concrete, verifiable
   requirements. Each has a tier (`core` / `competent` / `expert`), a category tag,
@@ -114,7 +119,7 @@ spec-specific guidance lives in the spec's checkpoint file.
 | `effect_hygiene` | Effects only for true side effects (subscriptions, timers, external systems), correct dependencies, cleanup, no derived-state or event-handling effects. |
 | `component_design` | Single responsibility, sensible decomposition and composition, right abstraction level, no monoliths and no pointless fragmentation. |
 | `typescript_quality` | Precise types, no `any`, discriminated unions and narrowing where they add clarity, types as documentation. |
-| `performance_awareness` | Memoization where justified and only there, stable references where they matter, concurrent APIs to keep interaction responsive. |
+| `performance_awareness` | Deliberate performance choices under an auto-memoizing compiler: concurrent APIs (`useTransition`/`useDeferredValue`) to keep interaction responsive, no redundant manual memoization (AP-09), sensible algorithmic and structural choices. |
 | `accessibility_semantics` | Semantic HTML, label associations, correct ARIA patterns, keyboard operability, screen-reader-visible state. |
 
 ## Output format

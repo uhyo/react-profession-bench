@@ -175,7 +175,28 @@ judgment, not trivia.
 - New specs get IDs **101+**; the runner gains `--suite v1|v2` so v1 stays runnable
   bit-for-bit.
 
-### 3.4 New reported metrics (not folded into the score)
+### 3.4 v2 scaffold: React Compiler enabled (added 2026-07-18)
+
+v2 implementations build on **`scaffold-v2/`** — identical to the v1 scaffold plus
+**React Compiler** (`babel-plugin-react-compiler` via `reactCompilerPreset` from
+`@vitejs/plugin-react` 6 + `@rolldown/plugin-babel` on Vite 8; the older
+`babel.plugins` config is silently ignored on Vite 8 — verified the working setup
+produces `react/compiler-runtime` imports and `memo_cache_sentinel` markers in the
+bundle, with `tsc -b` clean). Rationale:
+
+- A compiler-enabled Vite + React 19 app is the modern professional baseline the
+  benchmark says it measures, matching the "reward idiomatic React" philosophy.
+- It compounds the Rules of React gate: compiled output is only correct for
+  rule-abiding code.
+- It creates a fresh expert discriminator with real headroom — "trusts the
+  compiler, zero manual memoization" — which current models fail at 19–69%
+  measured `useMemo` wrap rates.
+- Performance measurement shifts to what the compiler doesn't do:
+  `useTransition`/`useDeferredValue`, algorithmic and structural choices.
+
+The v1 `scaffold/` stays byte-identical for `--suite v1`.
+
+### 3.5 New reported metrics (not folded into the score)
 
 - **Cost and wall-clock per implementation** (tokens where the backend exposes them) —
   outstanding request since 第8回; enables quality-per-cost curves across effort
@@ -223,3 +244,4 @@ judgment, not trivia.
 | 3 | refactoring-task spec | **in v2.0**; merged with the decomposition stress test (one spec covers both) |
 | 4 | suite size | **14 specs** (net +1 vs v1): 9 kept + 2 redesigned + 3 new (refactoring, async actions, imperative animation per issue #1) |
 | 5 | Rules of React gate | × 0.6 on any judge-reported, evidence-proven rule violation (fixed class list, high-precision instructions); checkpoints must never rely on implementer "confessions" (comments/disable directives) |
+| 6 | v2 scaffold | React Compiler enabled (`scaffold-v2/`, §3.4); manual memoization becomes AP-09-by-default, perf checkpoints target concurrent APIs and structure |

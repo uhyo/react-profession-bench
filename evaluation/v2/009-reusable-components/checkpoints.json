@@ -239,14 +239,15 @@
     },
     {
       "id": "009-C18",
-      "tier": "competent",
+      "tier": "expert",
       "category": "performance_awareness",
       "weight": 1,
-      "title": "No reflexive memoization",
-      "requirement": "Memoization appears only where a consumer justifies it; cheap values and handlers are not blanket-wrapped in useMemo/useCallback (AP-09), and no memoized child receives freshly created object/array props that defeat it.",
-      "met_when": "Every useMemo/useCallback/React.memo present has an identifiable justification, or none are used at all — both are acceptable at this app's scale.",
+      "title": "Trusts the React Compiler — no manual memoization",
+      "requirement": "The scaffold has React Compiler enabled (automatic memoization); the submission relies on it: no useMemo/useCallback/React.memo appears without a concrete need the compiler cannot cover — and no such need exists in this app.",
+      "met_when": "Zero manual memoization anywhere in the submission.",
+      "partial_when": "An isolated manual memoization or two amid otherwise compiler-trusting code.",
       "anti_patterns": [
-        "AP-09: most values/handlers wrapped with no memoized consumers"
+        "AP-09: reflexive useMemo/useCallback wrapping — redundant under the compiler and signals the build setup was never read"
       ],
       "spec_refs": ["Requirement 1"]
     },
