@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "react-profession-bench/evaluation/v2/judge-output-schema.json",
+  "title": "v2 judge output (one evaluation call)",
+  "description": "The judge returns verdicts only; the runner computes all scores. The runner must additionally validate that verdict ids exactly match the spec's checkpoint ids, one entry each, in file order.",
+  "type": "object",
+  "required": ["verdicts", "anti_patterns_observed", "strengths", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "verdicts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "verdict", "evidence", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9]{3}-C[0-9]{2}$"
+          },
+          "verdict": { "enum": ["met", "partial", "missed"] },
+          "evidence": {
+            "type": "string",
+            "description": "File name + verbatim code quote proving the verdict. Empty string permitted only for 'missed' when no relevant code exists."
+          },
+          "note": {
+            "type": "string",
+            "description": "1-2 sentence explanation of the verdict"
+          }
+        }
+      }
+    },
+    "anti_patterns_observed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Anti-patterns spotted while reading (see anti-patterns.md), with file references. Informational; does not affect the score."
+    },
+    "strengths": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Notable positive observations beyond the checkpoints. Informational."
+    },
+    "summary": {
+      "type": "string",
+      "description": "3-5 sentence overall assessment"
+    }
+  }
+}

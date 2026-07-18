@@ -188,7 +188,8 @@ judgment, not trivia.
 
 1. **Approve this plan** (open decisions below).
 2. **Author v2 rubric + anti-patterns rewrite** (§3.2 items 1–4) and the v2
-   checkpoint schema.
+   checkpoint schema. — *done: `evaluation/v2/` (rubric, anti-patterns,
+   checkpoint-schema.json, judge-output-schema.json) + `docs/writing-checkpoints.md`.*
 3. **Checkpoint files for the 9 kept specs** — mine past n=3 outputs for what top
    models *actually* still get wrong (the reports' per-spec analyses are the source);
    that's what makes expert-tier checkpoints empirical rather than aspirational.
