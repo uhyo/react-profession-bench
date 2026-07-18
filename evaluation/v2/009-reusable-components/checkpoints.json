@@ -1,0 +1,352 @@
+{
+  "spec_id": "009",
+  "spec_name": "Task Board with Reusable Components",
+  "primary_focus": "Reusable component design: a self-contained async ActionButton (action prop + useTransition), generic ToggleGroup<T>, reusable ConfirmDialog on native <dialog>; failure paths that preserve user context.",
+  "checkpoints": [
+    {
+      "id": "009-C01",
+      "tier": "core",
+      "category": "component_design",
+      "weight": 2,
+      "title": "Three regions render with labeled badges",
+      "requirement": "The app renders the task creation form, the filter bar, and the task list; each task row shows its title plus status and priority badges with human-readable labels.",
+      "met_when": "All three regions are present and task rows use the provided STATUS_LABELS / PRIORITY_LABELS (or equivalent human-readable text) for badges.",
+      "anti_patterns": [
+        "Raw enum values ('in-progress') shown to the user",
+        "Badges conveyed by color alone with no text"
+      ],
+      "spec_refs": ["Requirement 1", "Requirement 2"]
+    },
+    {
+      "id": "009-C02",
+      "tier": "core",
+      "category": "state_architecture",
+      "weight": 3,
+      "title": "Status transitions and delete work end to end",
+      "requirement": "Each task shows exactly the action buttons for its status (Start / Complete / Reopen, plus Delete), the corresponding data-model API is called, and the list reflects the result on success.",
+      "met_when": "Button visibility follows the status rules; updateTaskStatus / deleteTask from data-model.ts are used unmodified; task state updates only from the API result.",
+      "anti_patterns": [
+        "All buttons always visible regardless of status",
+        "Local state mutated without calling the API, or API result ignored"
+      ],
+      "spec_refs": ["Requirement 3", "Requirement 4"]
+    },
+    {
+      "id": "009-C03",
+      "tier": "core",
+      "category": "state_architecture",
+      "weight": 2,
+      "title": "Task creation flow works",
+      "requirement": "The form creates a task via createTask with the entered title (required) and selected priority; the new task appears in the list; the form resets on success; Enter in the title input submits.",
+      "met_when": "All listed behaviors are implemented, including Enter-to-submit by any mechanism.",
+      "partial_when": "Creation works but one secondary behavior (reset on success, or Enter-to-submit) is missing.",
+      "spec_refs": ["Requirement 7", "Requirement 8", "Requirement 9", "Requirement 10"]
+    },
+    {
+      "id": "009-C04",
+      "tier": "core",
+      "category": "state_architecture",
+      "weight": 2,
+      "title": "Filters combine; two distinct empty states",
+      "requirement": "Status and priority filters default to All, apply simultaneously (AND), and the two empty-state messages are distinguished: no-match vs no-tasks-at-all.",
+      "met_when": "Both filters work together and the exact two messages from requirements 18-19 appear under the right conditions.",
+      "partial_when": "Filtering is correct but the two empty states are conflated into one message.",
+      "spec_refs": ["Requirement 13", "Requirement 14", "Requirement 18", "Requirement 19"]
+    },
+    {
+      "id": "009-C05",
+      "tier": "core",
+      "category": "state_architecture",
+      "weight": 3,
+      "title": "API failure leaves state unchanged and notifies",
+      "requirement": "When any API call fails (10% chance), a brief error notification is shown, the task state is not changed, and the app remains fully usable.",
+      "met_when": "Failures are caught for all four APIs; task state only ever updates from a resolved API result; a user-visible notification appears.",
+      "partial_when": "Failures are handled for some actions but at least one path swallows the error or leaves inconsistent state.",
+      "anti_patterns": [
+        "Unhandled promise rejection (no catch) on any action path",
+        "State updated before the API resolves with no recovery on failure"
+      ],
+      "spec_refs": ["Requirement 6"]
+    },
+    {
+      "id": "009-C06",
+      "tier": "core",
+      "category": "effect_hygiene",
+      "weight": 4,
+      "title": "Independent concurrent pending states",
+      "requirement": "While a call is in flight, only the triggering button shows its pending label and disabled appearance; other buttons on the same and other tasks stay interactive, and multiple actions can be in flight simultaneously, each with its own pending state.",
+      "met_when": "Pending state is tracked per button instance (not globally); a rapid second activation of the same button is prevented while pending.",
+      "anti_patterns": [
+        "A single global isLoading that disables the whole board",
+        "Pending state keyed per task (not per button), so Start and Delete on the same task lock each other"
+      ],
+      "spec_refs": ["Requirement 5", "Requirement 17"]
+    },
+    {
+      "id": "009-C07",
+      "tier": "competent",
+      "category": "component_design",
+      "weight": 5,
+      "title": "App decomposed beyond the three required reusables",
+      "requirement": "The application is decomposed into single-responsibility components beyond the three mandated reusables: the task list, the individual task row, and the creation form each exist as their own components rather than being inlined in App.",
+      "met_when": "App composes distinct list / row / form components (names may vary); no component mixes unrelated responsibilities; App is a thin composition root.",
+      "partial_when": "Some extraction exists but one major region (list rows or the form) is still inlined in a large App component.",
+      "anti_patterns": [
+        "A ~200-line monolithic App containing rows, form, and dialog logic inline"
+      ],
+      "spec_refs": ["Requirement 1"]
+    },
+    {
+      "id": "009-C08",
+      "tier": "competent",
+      "category": "component_design",
+      "weight": 3,
+      "title": "One pending-button component used everywhere",
+      "requirement": "The pending-state button behavior is a single reusable component used for all async buttons: the four task actions, the Create button, and the dialog's confirm button.",
+      "met_when": "One component implements label-swap + disabled-while-pending, and every async button in the app is an instance of it.",
+      "partial_when": "The component exists and covers most buttons, but at least one async button reimplements pending logic bespoke.",
+      "anti_patterns": [
+        "Pending logic duplicated per call site with inline useState",
+        "The dialog's Delete button bypassing the shared component"
+      ],
+      "spec_refs": ["Requirement 20"]
+    },
+    {
+      "id": "009-C09",
+      "tier": "competent",
+      "category": "component_design",
+      "weight": 3,
+      "title": "The button owns its pending state",
+      "requirement": "The reusable button manages pending state internally; call sites never manage or pass pending state.",
+      "met_when": "No pending/loading boolean prop exists on the button API, and no call site holds useState for pending.",
+      "anti_patterns": [
+        "A pending: boolean prop forcing every call site to run its own useState + try/finally — the pending lifecycle leaks to consumers"
+      ],
+      "spec_refs": ["Requirement 20"]
+    },
+    {
+      "id": "009-C10",
+      "tier": "competent",
+      "category": "typescript_quality",
+      "weight": 2,
+      "title": "Single generic ToggleGroup for both filters",
+      "requirement": "Both filters use one reusable toggle-group component whose value/options/onChange are typed by a generic parameter, so each call site gets its own precise value type.",
+      "met_when": "One component with a type parameter (e.g. <T extends string>) serves both filters; onChange at the status call site receives the status union, not string.",
+      "partial_when": "One shared component, but typed with plain string — call sites lose type safety.",
+      "anti_patterns": [
+        "Two separate filter components with duplicated toggle logic"
+      ],
+      "spec_refs": ["Requirement 11", "Requirement 12", "Requirement 21"]
+    },
+    {
+      "id": "009-C11",
+      "tier": "competent",
+      "category": "state_architecture",
+      "weight": 2,
+      "title": "Filtered list and empty-state derived, not stored",
+      "requirement": "The visible task list and the empty-state message are derived during render from tasks + filters; they are never mirrored into state or synced via effects.",
+      "met_when": "No useState holds the filtered list or the message; no effect recomputes them (AP-01/AP-03 absent).",
+      "anti_patterns": [
+        "AP-01: filteredTasks state updated by an effect watching tasks/filters"
+      ],
+      "spec_refs": ["Requirement 14", "Requirement 18", "Requirement 19"]
+    },
+    {
+      "id": "009-C12",
+      "tier": "competent",
+      "category": "component_design",
+      "weight": 2,
+      "title": "ConfirmDialog is reusable and task-agnostic",
+      "requirement": "The confirmation dialog is a reusable component with message, labels, and confirm/cancel behavior supplied via props — nothing task-deletion-specific inside it — and Escape or clicking outside closes it without confirming.",
+      "met_when": "The dialog component contains no task/domain logic; Escape and outside-click both cancel.",
+      "partial_when": "Reusable API but one dismissal path (Escape or outside-click) is missing.",
+      "anti_patterns": [
+        "Deletion confirmation hardcoded inside the task row component"
+      ],
+      "spec_refs": ["Requirement 15", "Requirement 16", "Requirement 22"]
+    },
+    {
+      "id": "009-C13",
+      "tier": "competent",
+      "category": "component_design",
+      "weight": 3,
+      "title": "Enter submits through the same pending pathway",
+      "requirement": "The creation form uses a real <form> whose submit button is the shared pending button, so keyboard (Enter) and mouse submission exercise identical pending and error handling.",
+      "met_when": "Enter triggers native form submission routed through the same code path as clicking Create — pending label shows and failures notify on both paths.",
+      "anti_patterns": [
+        "onKeyDown Enter handler on the input reimplementing submission",
+        "type=\"button\" + form onSubmit calling the API directly, so Enter submissions show no pending state and bypass error handling"
+      ],
+      "spec_refs": ["Requirement 8", "Requirement 10", "Requirement 20"]
+    },
+    {
+      "id": "009-C14",
+      "tier": "competent",
+      "category": "accessibility_semantics",
+      "weight": 3,
+      "title": "Async status is communicated to assistive technology",
+      "requirement": "Pending and error states are exposed to AT: pending buttons carry aria-busy (with the changed label), and error notifications use role=\"alert\" or an assertive live region.",
+      "met_when": "Both signals present: aria-busy={pending} on the shared button, and role=\"alert\" (or aria-live=\"assertive\") on error notifications.",
+      "partial_when": "Exactly one of the two signals is present (e.g. aria-busy but errors only aria-live=\"polite\", or vice versa).",
+      "anti_patterns": [
+        "Pending conveyed only visually",
+        "Errors in a polite/status region that screen readers may never announce promptly"
+      ],
+      "spec_refs": ["Requirement 5", "Requirement 6"]
+    },
+    {
+      "id": "009-C15",
+      "tier": "competent",
+      "category": "effect_hygiene",
+      "weight": 2,
+      "title": "Initial fetch is a single clean mount effect",
+      "requirement": "Initial tasks load via one mount-time mechanism with a loading indication and protection against state updates after unmount/re-run (or an equivalent Suspense-based approach).",
+      "met_when": "Exactly one fetch path: a mount effect with an ignore/cancellation guard in cleanup (or use()/Suspense); loading state shown; no refetch loops.",
+      "partial_when": "Single clean effect but no cancellation guard.",
+      "anti_patterns": [
+        "AP-07: fetch effect with no dependency array",
+        "Fetch triggered from render or from multiple competing effects"
+      ],
+      "spec_refs": ["Requirement 1"]
+    },
+    {
+      "id": "009-C16",
+      "tier": "competent",
+      "category": "effect_hygiene",
+      "weight": 1,
+      "title": "Dialog dismissal wiring is stable and clean",
+      "requirement": "Any manually implemented dialog dismissal listeners (document keydown for Escape, backdrop handlers) are attached once with stable dependencies and cleaned up; no ref-sync effects smuggle callbacks. Trivially met when the native <dialog> handles dismissal.",
+      "met_when": "Native <dialog> dismissal, or manual listeners in a single effect with correct deps and cleanup, without useEffect-based ref syncing of handlers.",
+      "anti_patterns": [
+        "Listener re-attached every render due to an unstable handler dependency",
+        "useEffect(() => { onCloseRef.current = onClose }) ref-sync effects (the manual useEffectEvent workaround)"
+      ],
+      "spec_refs": ["Requirement 16"]
+    },
+    {
+      "id": "009-C17",
+      "tier": "competent",
+      "category": "typescript_quality",
+      "weight": 2,
+      "title": "Precise types throughout",
+      "requirement": "The data-model types are used as-is, all component props have named types, and there is no any (including as any / suppressions) or untyped escape hatch.",
+      "met_when": "Task/TaskStatus/TaskPriority imported and used; props typed via named interface/type; zero any; unions preserved (no widening to string).",
+      "anti_patterns": [
+        "Loosely typed callbacks like () => Promise<unknown> where void is meant",
+        "Redeclaring local copies of the provided types"
+      ],
+      "spec_refs": ["Requirement 4"]
+    },
+    {
+      "id": "009-C18",
+      "tier": "competent",
+      "category": "performance_awareness",
+      "weight": 1,
+      "title": "No reflexive memoization",
+      "requirement": "Memoization appears only where a consumer justifies it; cheap values and handlers are not blanket-wrapped in useMemo/useCallback (AP-09), and no memoized child receives freshly created object/array props that defeat it.",
+      "met_when": "Every useMemo/useCallback/React.memo present has an identifiable justification, or none are used at all — both are acceptable at this app's scale.",
+      "anti_patterns": [
+        "AP-09: most values/handlers wrapped with no memoized consumers"
+      ],
+      "spec_refs": ["Requirement 1"]
+    },
+    {
+      "id": "009-C19",
+      "tier": "expert",
+      "category": "effect_hygiene",
+      "weight": 6,
+      "title": "Pending state is declarative: useTransition or form actions",
+      "requirement": "The reusable button derives its pending state from React's async primitives — useTransition/startTransition wrapping the action, or an equivalent form-action integration (form action + useActionState/useFormStatus) — rather than manually flipping a useState boolean around the await.",
+      "met_when": "isPending comes from useTransition (or useFormStatus/useActionState in a form-action design) inside the reusable button, for all async buttons.",
+      "partial_when": "A transition/form-action drives some buttons (e.g. the form submit via useFormStatus) while others still use manual useState pending.",
+      "anti_patterns": [
+        "const [pending, setPending] = useState(false) with setPending(true) before the call and finally setPending(false) — the imperative pattern React 19's transitions replace"
+      ],
+      "spec_refs": ["Requirement 5", "Requirement 20"]
+    },
+    {
+      "id": "009-C20",
+      "tier": "expert",
+      "category": "component_design",
+      "weight": 2,
+      "title": "Async contract expressed as an action prop",
+      "requirement": "The reusable button's API names its async callback action (typed () => void | Promise<void> or () => Promise<void>), following the React 19 convention that signals the component owns the async lifecycle — not onClick.",
+      "met_when": "The prop is named action (or a *Action name) with an async-aware type, and consumers pass the async operation directly.",
+      "anti_patterns": [
+        "onClick: () => Promise<unknown> — reuses the sync-click name for an async contract, hiding that the component manages pending state"
+      ],
+      "spec_refs": ["Requirement 20"]
+    },
+    {
+      "id": "009-C21",
+      "tier": "expert",
+      "category": "accessibility_semantics",
+      "weight": 3,
+      "title": "Native <dialog> with showModal()",
+      "requirement": "The confirmation dialog is the native <dialog> element opened with showModal(), giving top-layer rendering, focus containment, Escape handling, and backdrop for free.",
+      "met_when": "A <dialog> element and showModal()/close() calls exist; Escape/backdrop behavior builds on the native element (light-dismiss or a cancel/click handler on the dialog).",
+      "partial_when": "<dialog> is used but opened via the open attribute instead of showModal(), losing modality and focus containment.",
+      "anti_patterns": [
+        "A div overlay with role=\"dialog\" aria-modal=\"true\" plus hand-rolled Escape/backdrop effects — reimplements what the platform provides"
+      ],
+      "spec_refs": ["Requirement 15", "Requirement 16", "Requirement 22"]
+    },
+    {
+      "id": "009-C22",
+      "tier": "expert",
+      "category": "accessibility_semantics",
+      "weight": 2,
+      "title": "Focus moves into the dialog and returns on close",
+      "requirement": "Opening the dialog moves keyboard focus inside it and keeps it contained; closing returns focus to the element that opened it (native <dialog> modality, or equivalent manual management).",
+      "met_when": "Focus lands in the dialog on open, cannot Tab out while open, and returns to the triggering Delete button on close — via showModal() semantics or explicit trap + restore code.",
+      "partial_when": "Focus moves into the dialog (e.g. autoFocus) but is not contained or not restored on close.",
+      "anti_patterns": [
+        "Focus left on the (possibly removed) trigger while the dialog is open, or dropped to <body> after closing"
+      ],
+      "spec_refs": ["Requirement 16"]
+    },
+    {
+      "id": "009-C23",
+      "tier": "expert",
+      "category": "state_architecture",
+      "weight": 2,
+      "title": "Failure paths preserve user context",
+      "requirement": "When an API call fails, the user's context is preserved for retry: a failed delete leaves the confirmation dialog open with the error shown, and a failed creation keeps the form's entered values.",
+      "met_when": "Both: the dialog closes only on successful deletion, and the form resets only on successful creation.",
+      "partial_when": "Exactly one of the two failure paths preserves context.",
+      "anti_patterns": [
+        "Dialog closed unconditionally in a finally block, discarding the user's intent on failure",
+        "Form cleared before the createTask promise resolves"
+      ],
+      "spec_refs": ["Requirement 6", "Requirement 9", "Requirement 17"]
+    },
+    {
+      "id": "009-C24",
+      "tier": "expert",
+      "category": "typescript_quality",
+      "weight": 2,
+      "title": "Button composes native button props",
+      "requirement": "The reusable button extends the native button's prop surface (e.g. Omit<ComponentPropsWithoutRef<\"button\">, \"onClick\">) so consumers can pass type, disabled, aria-*, etc. with full type safety, instead of an ad-hoc closed prop list.",
+      "met_when": "The props type derives from React's native button props with the superseded members omitted, and spreads the rest onto <button>.",
+      "anti_patterns": [
+        "A closed hand-picked prop list that silently drops type=\"submit\" or aria attributes",
+        "Spreading an untyped rest ({ ...props }: any) instead of deriving the type"
+      ],
+      "spec_refs": ["Requirement 20"]
+    },
+    {
+      "id": "009-C25",
+      "tier": "expert",
+      "category": "accessibility_semantics",
+      "weight": 1,
+      "title": "Form inputs have real label associations",
+      "requirement": "The title input and priority select are labeled via <label htmlFor> or wrapping <label> (visually hidden is fine given the placeholder-style layout), not bare aria-label strings.",
+      "met_when": "Both form controls have an associated <label> element.",
+      "partial_when": "One control has a real label, the other only aria-label.",
+      "anti_patterns": [
+        "aria-label as the only labeling on native form controls that could carry real labels"
+      ],
+      "spec_refs": ["Requirement 7"]
+    }
+  ]
+}
