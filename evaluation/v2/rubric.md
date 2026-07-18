@@ -25,8 +25,8 @@ baseline and is itself frozen once v2-第1回 is published.)
     rules_gate   = 0.6 if the judge reported ≥1 Rules of React violation, else 1
   ```
 
-  This is a true 0–100 scale. Category subscores are computed the same way over each
-  category's checkpoints (gates apply only to the final score).
+  This is a true 0–100 scale. Category sub-scores are computed the same way over
+  each category's checkpoints (gates apply only to the final score).
 
 ## Instructions for the LLM Judge
 
@@ -67,11 +67,33 @@ violation you find in `react_rule_violations`, classified as one of:
 
 | `rule` | Violation |
 |---|---|
-| `impure-render` | Side effects during render: mutating module/external state, writing storage, subscribing, DOM mutation, or non-idempotent work in a component/hook body outside effects and event handlers. |
-| `state-mutation` | Directly mutating state, props, or values previously passed to `useState`/`useReducer` (e.g. `items.push(...)` then `setItems(items)`). |
+| `impure-render` | Side effects during render: mutating module/external state, writing storage, subscribing, DOM mutation, or non-idempotent work in a component/hook body outside effects and event handlers. An **unconditional** `setState` call during render (a render loop) belongs here — but see the render-phase state adjustment carve-out below. |
+| `state-mutation` | Directly mutating state or props objects (e.g. `items.push(...)` then `setItems(items)`). This is about mutating objects in place — *calling* a setState function during render is not this class. |
 | `conditional-hook` | Hooks called conditionally, in loops, after early returns, or otherwise not at the top level of a component/custom hook. |
 | `direct-component-call` | Calling a component function directly, or calling hooks outside components/custom hooks. |
 | `stale-closure-deps` | An effect reads reactive values (props/state) that are omitted from its dependency array, creating a stale-closure hazard, without an honest mediation (`useEffectEvent`, or a ref that is reliably kept current). |
+
+**Not a violation — render-phase state adjustment.** Calling a setState function
+during render is the *documented, correct* technique for deriving state from
+previous renders ("adjusting state when props change") when **both** conditions
+hold:
+
+1. the call is gated by a condition comparing against a value from the previous
+   render (e.g. `if (items !== prevItems)`), so it cannot loop, **and**
+2. it sets the **component's own** state (never another component's).
+
+```tsx
+const [prevItems, setPrevItems] = useState(items);
+if (items !== prevItems) {
+  setPrevItems(items);
+  setSelection(null);
+}
+```
+
+This is *cheaper* than the `useEffect`-based sync it replaces (React re-renders
+immediately, with no commit in between) and is a positive signal (BP-09) — never
+report it as a violation. Only an unconditional or non-converging render-phase
+`setState` is `impure-render`.
 
 This gate is deliberately **high-precision**: report a violation only when the
 evidence is unambiguous — the quoted code alone must prove it. The submission will

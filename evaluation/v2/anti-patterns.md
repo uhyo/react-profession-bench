@@ -58,6 +58,22 @@ representations of the same data, and they can diverge. This also causes a doubl
 render on every prop change.
 
 **What to do instead:** Use the prop directly, or derive from it during render.
+When the component genuinely needs to *reset or adjust* its own state in response
+to a prop change, use conditional **render-phase state adjustment** (BP-09), not an
+effect:
+
+```tsx
+const [prevItems, setPrevItems] = useState(items);
+if (items !== prevItems) {
+  setPrevItems(items);
+  setSelection(null);
+}
+```
+
+React re-renders immediately with no commit in between — strictly cheaper than the
+effect-based sync. (Gated by a previous-render comparison and setting only the
+component's own state, this is valid and does **not** trip the Rules of React
+gate; see the rubric.)
 
 **How to recognize:** A `useEffect` with a prop in its dependency array whose body
 sets state to a value derived from that prop.
@@ -267,6 +283,7 @@ summary.
 | BP-06 | Labels associated with inputs (`htmlFor`/wrapping) |
 | BP-07 | Buttons with explicit `type` |
 | BP-08 | Controlled form inputs (`value` + `onChange`) where controlled is the right choice |
+| BP-09 | Conditional render-phase state adjustment (previous-render comparison gating a setState of own state) instead of effect-based prop→state sync |
 
 ## Structural Context (Informational)
 
