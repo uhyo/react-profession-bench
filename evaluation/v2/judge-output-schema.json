@@ -4,7 +4,7 @@
   "title": "v2 judge output (one evaluation call)",
   "description": "The judge returns verdicts only; the runner computes all scores. The runner must additionally validate that verdict ids exactly match the spec's checkpoint ids, one entry each, in file order.",
   "type": "object",
-  "required": ["verdicts", "anti_patterns_observed", "strengths", "summary"],
+  "required": ["verdicts", "react_rule_violations", "anti_patterns_observed", "strengths", "summary"],
   "additionalProperties": false,
   "properties": {
     "verdicts": {
@@ -28,6 +28,32 @@
             "type": "string",
             "description": "1-2 sentence explanation of the verdict"
           }
+        }
+      }
+    },
+    "react_rule_violations": {
+      "type": "array",
+      "description": "Unambiguous Rules of React violations, each proven by its quoted evidence alone. Any entry triggers the runner's rules gate (final score × 0.6). Empty array when none found.",
+      "items": {
+        "type": "object",
+        "required": ["rule", "evidence", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "rule": {
+            "enum": [
+              "impure-render",
+              "state-mutation",
+              "conditional-hook",
+              "direct-component-call",
+              "stale-closure-deps"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "description": "File name + verbatim code quote proving the violation"
+          },
+          "note": { "type": "string" }
         }
       }
     },

@@ -71,6 +71,20 @@ solution passes the first and fails the second).
 idiomatic", no "appropriate" without saying what appropriate looks like. If you
 can't write the criterion concretely, you haven't decided what you're measuring.
 
+**Judge the code, not the confession.** Criteria and anti-patterns must be
+detectable from the code's behavior alone — never from comments, lint-disable
+directives, TODOs, or naming. The scaffold ships **no ESLint**, so a model can
+violate exhaustive-deps (or any React rule) without leaving a single marker;
+"eslint-disable present" or "documents why deps are empty" are criteria that only
+catch models that confess. Phrase the violation itself: "reactive values read
+inside the effect but omitted from its dependency array".
+
+**Don't re-litigate the Rules of React per spec.** Outright rule violations
+(impure render, conditional hooks, state mutation, dishonest effect dependencies)
+are handled globally by the runner's Rules of React gate (see
+`evaluation/v2/rubric.md`) — a checkpoint should cover them only when the spec
+makes a specific rule the point (as 006 does with honest dependencies).
+
 **Anti-patterns are the 'missed' spec.** List the wrong approaches you expect
 (reference `AP-nn` from `evaluation/v2/anti-patterns.md` where applicable). They
 tell the judge what failure looks like, which is half of what makes verdicts
@@ -113,7 +127,7 @@ instead of collapsing into the 4-vs-5 coin flip:
   "partial_when": "Only some settings avoid the dependency array, or the handler can read stale settings in some paths.",
   "anti_patterns": [
     "All settings in the effect dependency array — reconnect on every change (missed events during reconnection)",
-    "eslint-disable on exhaustive-deps to hide the dependency (stale closure risk)"
+    "Settings read directly inside the effect closure while omitted from the dependency array — a silent stale-closure hazard (Rules of React violation; the scaffold has no ESLint, so no disable comment will mark it)"
   ],
   "spec_refs": ["Requirement 8"]
 },

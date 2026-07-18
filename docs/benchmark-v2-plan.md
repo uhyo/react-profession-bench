@@ -73,6 +73,15 @@ Replace the holistic 1–5-per-category judgment with **per-spec scored checkpoi
 
 - `tsc -b --noEmit` failure → score × 0.6, both raw and gated values recorded.
   (v1's biggest known grey zone: 008 runs scored 67–85 while not compiling.)
+- **Rules of React gate** (added 2026-07-18): the judge reports unambiguous,
+  evidence-proven violations of the Rules of React (impure render, state mutation,
+  conditional hooks, direct component calls, dishonest effect dependencies) in a
+  dedicated output field; any violation → score × 0.6. Rationale: the benchmark
+  rewards strictly rule-abiding, idiomatic React, and a rule violation must crater
+  the score regardless of how many checkpoints pass. High-precision by design —
+  the judge is instructed to report only what the quoted code alone proves
+  (the scaffold has no ESLint, so violations are silent; nothing may depend on
+  disable comments or other "confessions").
 - Stub/no-op submission detection stays implicit (core checkpoints all fail → near 0,
   which the true-0 scale now actually expresses).
 - Optional later (v2.1): an automated smoke test (vite build + a few Playwright
@@ -213,3 +222,4 @@ judgment, not trivia.
 | 2 | compile-failure gate | × 0.6 multiplier, raw score also recorded |
 | 3 | refactoring-task spec | **in v2.0**; merged with the decomposition stress test (one spec covers both) |
 | 4 | suite size | **14 specs** (net +1 vs v1): 9 kept + 2 redesigned + 3 new (refactoring, async actions, imperative animation per issue #1) |
+| 5 | Rules of React gate | × 0.6 on any judge-reported, evidence-proven rule violation (fixed class list, high-precision instructions); checkpoints must never rely on implementer "confessions" (comments/disable directives) |

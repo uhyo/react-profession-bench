@@ -20,11 +20,13 @@ baseline and is itself frozen once v2-第1回 is published.)
 
   ```
   raw_score   = (Σ met_weight + 0.5 × Σ partial_weight) / Σ total_weight × 100
-  final_score = raw_score × 0.6 if `tsc -b --noEmit` failed, else raw_score
+  final_score = raw_score × compile_gate × rules_gate
+    compile_gate = 0.6 if `tsc -b --noEmit` failed, else 1
+    rules_gate   = 0.6 if the judge reported ≥1 Rules of React violation, else 1
   ```
 
   This is a true 0–100 scale. Category subscores are computed the same way over each
-  category's checkpoints.
+  category's checkpoints (gates apply only to the final score).
 
 ## Instructions for the LLM Judge
 
@@ -56,6 +58,29 @@ baseline and is itself frozen once v2-第1回 is published.)
 6. Never invent code, line numbers, or APIs. Evidence must be copyable from the
    submission.
 
+## Rules of React gate
+
+Professional React code strictly obeys the
+[Rules of React](https://react.dev/reference/rules); a violation anywhere is
+disqualifying-level, independent of how many checkpoints pass. Report every
+violation you find in `react_rule_violations`, classified as one of:
+
+| `rule` | Violation |
+|---|---|
+| `impure-render` | Side effects during render: mutating module/external state, writing storage, subscribing, DOM mutation, or non-idempotent work in a component/hook body outside effects and event handlers. |
+| `state-mutation` | Directly mutating state, props, or values previously passed to `useState`/`useReducer` (e.g. `items.push(...)` then `setItems(items)`). |
+| `conditional-hook` | Hooks called conditionally, in loops, after early returns, or otherwise not at the top level of a component/custom hook. |
+| `direct-component-call` | Calling a component function directly, or calling hooks outside components/custom hooks. |
+| `stale-closure-deps` | An effect reads reactive values (props/state) that are omitted from its dependency array, creating a stale-closure hazard, without an honest mediation (`useEffectEvent`, or a ref that is reliably kept current). |
+
+This gate is deliberately **high-precision**: report a violation only when the
+evidence is unambiguous — the quoted code alone must prove it. The submission will
+contain no lint output or disable comments (the scaffold has no ESLint); judge the
+code's behavior, never the presence or absence of comments. If you are not certain
+a rule is violated, do not report it here — mention it in
+`anti_patterns_observed` instead. The runner multiplies the final score by 0.6 when
+any violation is reported, so a false positive is expensive.
+
 ## Category definitions (tags)
 
 Every checkpoint carries one category tag. These definitions are generic — all
@@ -82,6 +107,13 @@ Respond with **only** a JSON object (no markdown fences, no commentary) matching
       "id": "<checkpoint id>",
       "verdict": "met" | "partial" | "missed",
       "evidence": "<file name + verbatim code quote; empty string only when missed with no relevant code>",
+      "note": "<1-2 sentences>"
+    }
+  ],
+  "react_rule_violations": [
+    {
+      "rule": "impure-render" | "state-mutation" | "conditional-hook" | "direct-component-call" | "stale-closure-deps",
+      "evidence": "<file name + verbatim code quote proving the violation>",
       "note": "<1-2 sentences>"
     }
   ],
