@@ -1,6 +1,6 @@
 # Benchmark v2 Plan
 
-Status: **draft for discussion** (2026-07-17). Nothing in v1 changes until this plan is approved.
+Status: **draft — core decisions settled 2026-07-18** (see §6). Nothing in v1 changes.
 
 v1 is saturating: frontier models cluster at 78–87 on a scale whose practical ceiling
 is ~98, and Fable 5 (max) has already recorded a 100. This document diagnoses why,
@@ -105,20 +105,27 @@ the v1 baseline. v2 is the re-baseline, so they get fixed **in the v2 rubric onl
 
 **Judge protocol changes:**
 
-- **Re-pin the judge** to a current model, chosen once and version-pinned, with
-  `--effort` now pinned *explicitly* (v1 deliberately passed none; v2 sets the
-  baseline on purpose). Recommendation: `sonnet-4.6` → `sonnet-5` pinned.
-  Cross-vendor bias guard: once per report, re-judge one full sample with a pinned
-  GPT judge and publish the delta (第2回 showed same-model self-scoring can be +45;
-  same-vendor bias needs monitoring, and checkpoint scoring already blunts it).
-- **k=3 judge calls per implementation, take the median per checkpoint.** Judging is
-  one cheap call vs. a whole implementation run; this attacks the judge half of the
-  ±10–15 noise at ~zero relative cost. (Implementation-side noise is still handled by
-  the n=3 whole-benchmark methodology, unchanged.)
+- **Re-pin the judge** to `sonnet-5` (version-pinned), with `--effort` now pinned
+  *explicitly* (v1 deliberately passed none; v2 sets the baseline on purpose).
+  No cross-vendor audit judge: a second vendor is not reliably available (extra
+  subscriptions, availability windows), so it can't be part of the standing protocol.
+  The bias exposure is accepted and mitigated structurally — checkpoint verdicts with
+  quoted evidence leave far less room for vendor taste than holistic 1–5 scores, and
+  the verdicts are auditable by hand.
+- **Judge calls: k=1 by default.** Evaluator runs are not cheap, and k=3 per
+  implementation would noticeably slow a full sweep. Instead, during calibration
+  (§5), re-judge one full anchor sample 3× to *measure* residual judge-side variance
+  under checkpoint scoring. Only if per-spec judge noise is still large (> ~±5)
+  does a `--judge-k 3` (median per checkpoint) option get turned on for reports.
+  (Implementation-side noise is still handled by the n=3 whole-benchmark
+  methodology, unchanged.)
 - **Structured output via enforced JSON schema / tool call** instead of "return ONLY
   JSON" + `repairJsonEscapes` (which exists because parsing broke 5+ times in v1).
 
-### 3.3 Spec portfolio (~14 specs)
+### 3.3 Spec portfolio (14 specs: 9 kept + 2 redesigned + 3 new)
+
+Suite size is capped at **14** (one more than v1) to keep full n=3 sweep cost in
+check. Retiring two specs frees the slots for three new ones.
 
 - **Retire:** 001 (event form), 012 (multi-tab editor) — no decision points left at
   the frontier.
@@ -129,17 +136,33 @@ the v1 baseline. v2 is the re-baseline, so they get fixed **in the v2 rubric onl
 - **Keep with v2 checkpoint files:** 003, 004, 005, 006, 007, 008, 009, 010, 011 —
   spec text mostly untouched (they still discriminate); discrimination is restored by
   adding expert-tier checkpoints, which is much cheaper than authoring new specs.
-- **New specs targeting the measured blind spots** (every report since 第7回 shows
-  all models missing these):
-  1. **Async actions app** — forces `useTransition`/`useActionState`/`useOptimistic`/
+- **New specs (3), targeting the measured blind spots** (every report since 第7回
+  shows all models missing these):
+  1. **Refactoring task** (new task *type*): the model receives a working-but-awful
+     monolithic implementation plus a change request; score = quality of the result
+     and of the diff. This doubles as the **decomposition stress test** — breaking up
+     the monolith *is* the task — covering the one dimension that cleanly separated
+     GPT-5.6 from Claude, while measuring reading-and-improving-code, the closest
+     thing to real professional work.
+  2. **Async actions app** — forces `useTransition`/`useActionState`/`useOptimistic`/
      `useFormStatus` interplay with failure rollback and concurrent edits.
-  2. **Decomposition stress test** — a feature-dense single screen where the entire
-     score is component architecture (the one dimension that cleanly separated GPT-5.6
-     from Claude); light on everything else.
-  3. **Refactoring task** (new task *type*): the model receives a working-but-awful
-     existing implementation plus a change request; score = quality of the result and
-     of the diff. Measures reading and improving code — closer to real professional
-     work, and empirically hard. (Can slip to v2.1 if scope is a concern.)
+  3. **Imperative animation spec** (GitHub issue #1): transient animations —
+     enter/exit of list items, reorder (FLIP), attention flashes — where the expert
+     move is `Element#animate` (Web Animations API) driven from refs, *not*
+     state-toggled CSS classes with `useEffect`/`setTimeout` re-render churn. Expert
+     checkpoints: animation interruption/cancellation on rapid updates, cleanup,
+     `prefers-reduced-motion`, and keeping transient visual state out of React state
+     entirely.
+
+**Modern web API thread.** Beyond React APIs, v2 checkpoints deliberately reward
+reaching for the platform where it beats hand-rolled React: the new animation spec
+(WAAPI, possibly `document.startViewTransition`), plus expert-tier checkpoints in
+kept specs where natural — e.g. `IntersectionObserver` for feed visibility in 007,
+`navigator.clipboard` / `matchMedia` where specs touch them, alongside v1's existing
+Popover API / CSS anchor positioning (011) and `<dialog>` (009) signals. Rule: the
+platform API must be the *genuinely better* choice, so the checkpoint measures
+judgment, not trivia.
+
 - New specs get IDs **101+**; the runner gains `--suite v1|v2` so v1 stays runnable
   bit-for-bit.
 
@@ -169,20 +192,23 @@ the v1 baseline. v2 is the re-baseline, so they get fixed **in the v2 rubric onl
 3. **Checkpoint files for the 9 kept specs** — mine past n=3 outputs for what top
    models *actually* still get wrong (the reports' per-spec analyses are the source);
    that's what makes expert-tier checkpoints empirical rather than aspirational.
-4. **Author the 2 redesigned + 2–3 new specs** (+ spec-intent docs, including the
-   missing ones for 007/008).
-5. **Runner work**: `--suite`, checkpoint scoring + gates, k=3 median judging,
-   schema-enforced judge output, cost/wall-clock capture, judge re-pin.
+4. **Author the 2 redesigned + 3 new specs** (+ spec-intent docs, including the
+   missing ones for 007/008). The refactoring spec additionally needs its
+   fixture: the deliberately awful-but-working starting implementation.
+5. **Runner work**: `--suite`, checkpoint scoring + gates, optional `--judge-k`,
+   schema-enforced judge output, cost/wall-clock capture, judge re-pin (sonnet-5).
 6. **Calibration**: anchor runs (§4). Acceptance criteria: best condition mean ≤ ~75;
    ≥ ~10 pts between sonnet-5 and fable-5-max; no spec where the top model averages
-   ≥ 90. Iterate expert checkpoints until met.
+   ≥ 90. Iterate expert checkpoints until met. Also re-judge one anchor sample 3× to
+   quantify residual judge-side variance (decides whether `--judge-k 3` is ever
+   needed, §3.2).
 7. **v2-第1回 report** documenting the re-baseline and the bridge mapping.
 
-## 6. Open decisions
+## 6. Decisions (settled 2026-07-18)
 
-| # | decision | recommendation |
+| # | decision | outcome |
 |---|---|---|
-| 1 | v2 judge model | pinned `sonnet-5`, explicit effort pin, + per-report cross-vendor audit judge |
+| 1 | v2 judge model | pinned `sonnet-5` with explicit effort pin. **No** cross-vendor audit judge (second vendor not reliably available; evaluator cost non-trivial). Judge k=1 by default; k=3 only if calibration shows residual judge noise > ~±5 per spec. |
 | 2 | compile-failure gate | × 0.6 multiplier, raw score also recorded |
-| 3 | refactoring-task spec in v2.0 or v2.1 | include in v2.0 if authoring budget allows; it's the most future-proof addition |
-| 4 | suite size | ~14 specs (9 kept + 2 redesigned + 2–3 new); full n=3 sweep cost grows accordingly |
+| 3 | refactoring-task spec | **in v2.0**; merged with the decomposition stress test (one spec covers both) |
+| 4 | suite size | **14 specs** (net +1 vs v1): 9 kept + 2 redesigned + 3 new (refactoring, async actions, imperative animation per issue #1) |
