@@ -1,0 +1,210 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T02:06:17.028Z",
+    "compiles": true,
+    "weighted_score": 100,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T02:20:40.171Z",
+    "compiles": true,
+    "weighted_score": 95,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "003-quiz-builder",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T02:33:26.152Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "004-user-profile-browser",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T02:57:15.640Z",
+    "compiles": true,
+    "weighted_score": 81,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T03:10:36.851Z",
+    "compiles": true,
+    "weighted_score": 86,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T03:30:54.358Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T03:50:01.751Z",
+    "compiles": true,
+    "weighted_score": 100,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T05:52:33.073Z",
+    "compiles": true,
+    "weighted_score": 85,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T06:23:52.479Z",
+    "compiles": true,
+    "weighted_score": 82,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 4,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T06:41:40.850Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T06:53:10.443Z",
+    "compiles": true,
+    "weighted_score": 87,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 5,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T07:18:41.830Z",
+    "compiles": true,
+    "weighted_score": 97,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "opus-5-max",
+    "timestamp": "2026-07-26T07:37:20.582Z",
+    "compiles": true,
+    "weighted_score": 92,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  }
+]
