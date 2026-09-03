@@ -1,0 +1,50 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "fable-5.1-max",
+    "timestamp": "2026-09-03T01:03:16.799Z",
+    "compiles": true,
+    "weighted_score": 98,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "fable-5.1-max",
+    "timestamp": "2026-09-03T01:27:14.646Z",
+    "compiles": true,
+    "weighted_score": 95,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "003-quiz-builder",
+    "model": "fable-5.1-max",
+    "timestamp": "2026-09-03T06:03:15.629Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  }
+]

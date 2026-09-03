@@ -65,6 +65,7 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "opus-4.8":   { backend: "claude", modelArg: "claude-opus-4-8", effort: "high" },
   "opus-5":     { backend: "claude", modelArg: "claude-opus-5", effort: "high" },
   "fable-5":    { backend: "claude", modelArg: "claude-fable-5", effort: "high" },
+  "fable-5.1":  { backend: "claude", modelArg: "claude-fable-5-1", effort: "high" },
   "haiku-4.5":  { backend: "claude", modelArg: "claude-haiku-4-5-20251001", effort: "high" },
   // Claude CLI models (non-high effort variants)
   "opus-4.7-max": { backend: "claude", modelArg: "claude-opus-4-7", effort: "max" },
@@ -72,6 +73,7 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "opus-5-max":   { backend: "claude", modelArg: "claude-opus-5", effort: "max" },
   "fable-5-low":  { backend: "claude", modelArg: "claude-fable-5", effort: "low" },
   "fable-5-max":  { backend: "claude", modelArg: "claude-fable-5", effort: "max" },
+  "fable-5.1-max": { backend: "claude", modelArg: "claude-fable-5-1", effort: "max" },
   // Copilot CLI models (OpenAI)
   "gpt-4.1":           { backend: "copilot", modelArg: "gpt-4.1" },
   "gpt-5-mini":        { backend: "copilot", modelArg: "gpt-5-mini" },
