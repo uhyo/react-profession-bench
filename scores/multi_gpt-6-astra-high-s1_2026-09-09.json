@@ -1,0 +1,210 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T13:32:20.861Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T13:46:46.204Z",
+    "compiles": true,
+    "weighted_score": 88,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "003-quiz-builder",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T13:57:31.607Z",
+    "compiles": true,
+    "weighted_score": 81,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "004-user-profile-browser",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T14:15:39.355Z",
+    "compiles": true,
+    "weighted_score": 69,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T14:28:03.051Z",
+    "compiles": true,
+    "weighted_score": 66,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T16:59:09.930Z",
+    "compiles": true,
+    "weighted_score": 70,
+    "categories": {
+      "state_architecture": 3,
+      "effect_hygiene": 5,
+      "component_design": 2,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T17:16:49.070Z",
+    "compiles": true,
+    "weighted_score": 87,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 4,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T18:35:50.990Z",
+    "compiles": true,
+    "weighted_score": 73,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T18:45:37.298Z",
+    "compiles": true,
+    "weighted_score": 82,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T19:02:39.071Z",
+    "compiles": true,
+    "weighted_score": 82,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 2,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T19:16:50.124Z",
+    "compiles": true,
+    "weighted_score": 76,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T23:37:57.731Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "gpt-6-astra-high",
+    "timestamp": "2026-09-09T23:52:20.558Z",
+    "compiles": true,
+    "weighted_score": 84,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null
+  }
+]

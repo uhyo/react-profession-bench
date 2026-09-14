@@ -96,6 +96,10 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "gpt-5.6-terra-max":  { backend: "codex", modelArg: "gpt-5.6-terra", effort: "max" },
   "gpt-5.6-sol-high":   { backend: "codex", modelArg: "gpt-5.6-sol",   effort: "high" },
   "gpt-5.6-sol-max":    { backend: "codex", modelArg: "gpt-5.6-sol",   effort: "max" },
+  // Codex CLI models (OpenAI GPT-6 — Astra). Same effort convention as the
+  // 5.6 tiers: one version-pinned key per effort level.
+  "gpt-6-astra-high":   { backend: "codex", modelArg: "gpt-6-astra",  effort: "high" },
+  "gpt-6-astra-max":    { backend: "codex", modelArg: "gpt-6-astra",  effort: "max" },
 };
 
 const DEFAULT_MODELS = ["sonnet", "opus", "haiku"];
