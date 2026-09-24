@@ -64,6 +64,7 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "opus-4.7":   { backend: "claude", modelArg: "claude-opus-4-7", effort: "high" },
   "opus-4.8":   { backend: "claude", modelArg: "claude-opus-4-8", effort: "high" },
   "opus-5":     { backend: "claude", modelArg: "claude-opus-5", effort: "high" },
+  "opus-5.5":   { backend: "claude", modelArg: "claude-opus-5-5", effort: "high" },
   "fable-5":    { backend: "claude", modelArg: "claude-fable-5", effort: "high" },
   "fable-5.1":  { backend: "claude", modelArg: "claude-fable-5-1", effort: "high" },
   "haiku-4.5":  { backend: "claude", modelArg: "claude-haiku-4-5-20251001", effort: "high" },
@@ -71,6 +72,7 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "opus-4.7-max": { backend: "claude", modelArg: "claude-opus-4-7", effort: "max" },
   "opus-4.8-max": { backend: "claude", modelArg: "claude-opus-4-8", effort: "max" },
   "opus-5-max":   { backend: "claude", modelArg: "claude-opus-5", effort: "max" },
+  "opus-5.5-max": { backend: "claude", modelArg: "claude-opus-5-5", effort: "max" },
   "fable-5-low":  { backend: "claude", modelArg: "claude-fable-5", effort: "low" },
   "fable-5-max":  { backend: "claude", modelArg: "claude-fable-5", effort: "max" },
   "fable-5.1-max": { backend: "claude", modelArg: "claude-fable-5-1", effort: "max" },
@@ -702,8 +704,15 @@ async function runImplementation(specId: string, model: string, workDir: string)
   log(`  Running implementation with ${modelSpec.backend}:${modelSpec.modelArg}...`);
 
   try {
+    // 90 min. Raised from 45 (2026-09-23) after Opus 5.5 effort=max blew the
+    // old ceiling on spec 012 four attempts running, each time archiving a
+    // complete 30-file implementation that simply landed late. Speed is not
+    // scored here, so a ceiling that truncates a thorough model measures the
+    // wrong thing. Comparability is unaffected: no run in 819 scored rows had
+    // ever hit 45 min, so no past score was shaped by the old value. Third
+    // such bump (67840c0 -> 30 min, 521575a -> 45 min).
     await exec(modelSpec.backend, getImplementationArgs(modelSpec), {
-      cwd: workDir, timeout: 2_700_000, stdin: prompt,
+      cwd: workDir, timeout: 5_400_000, stdin: prompt,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
