@@ -60,6 +60,7 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   // drift; a genuine re-baseline would change these deliberately.
   "sonnet-4.6": { backend: "claude", modelArg: "claude-sonnet-4-6", effort: "high" },
   "sonnet-5":   { backend: "claude", modelArg: "claude-sonnet-5", effort: "high" },
+  "sonnet-5.5": { backend: "claude", modelArg: "claude-sonnet-5-5", effort: "high" },
   "opus-4.6":   { backend: "claude", modelArg: "claude-opus-4-6", effort: "high" },
   "opus-4.7":   { backend: "claude", modelArg: "claude-opus-4-7", effort: "high" },
   "opus-4.8":   { backend: "claude", modelArg: "claude-opus-4-8", effort: "high" },
@@ -73,6 +74,7 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "opus-4.8-max": { backend: "claude", modelArg: "claude-opus-4-8", effort: "max" },
   "opus-5-max":   { backend: "claude", modelArg: "claude-opus-5", effort: "max" },
   "opus-5.5-max": { backend: "claude", modelArg: "claude-opus-5-5", effort: "max" },
+  "sonnet-5.5-max": { backend: "claude", modelArg: "claude-sonnet-5-5", effort: "max" },
   "fable-5-low":  { backend: "claude", modelArg: "claude-fable-5", effort: "low" },
   "fable-5-max":  { backend: "claude", modelArg: "claude-fable-5", effort: "max" },
   "fable-5.1-max": { backend: "claude", modelArg: "claude-fable-5-1", effort: "max" },
