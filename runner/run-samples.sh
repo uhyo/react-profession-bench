@@ -17,6 +17,20 @@
 # implementation writes files as it goes, and a judge call takes minutes.
 # The killed spec is simply re-run from scratch on the next pass.
 #
+# A stall kill does NOT consume the pass budget. Sleeping hosts produce stall
+# kills on a sample that is merely waiting out a usage limit, and charging them
+# against MAX_PASSES retires a sample that never actually failed (2026-09-27:
+# gpt-6-astra-max s2 abandoned at 8/13 after six consecutive sleep-induced
+# kills). Stall kills get their own larger budget, and a sample is only retired
+# for real when neither budget is left or nothing has been scored for several
+# rounds in a row.
+#
+# Between passes the driver also reaps processes left holding this model's
+# sandboxes. Implementations start `npm run dev`/`vite preview` to check their
+# work in a browser; those live in their own process group and survive the
+# runner, so they accumulate (2026-09-29: 7 orphaned vite servers, ~1 GB RSS).
+# Only this MODEL's sandboxes are touched, so concurrent sweeps are unaffected.
+#
 # Usage:
 #   [STALL_MINUTES=90] runner/run-samples.sh <model> <scores-file> [<scores-file> ...]
 # Example:
@@ -38,6 +52,8 @@ FILES=("$@")
 
 TOTAL_SPECS=$(ls specs | wc -l | tr -d ' ')
 MAX_PASSES=6
+MAX_STALL_KILLS="${MAX_STALL_KILLS:-12}"
+MAX_IDLE_ROUNDS="${MAX_IDLE_ROUNDS:-8}"   # rounds with no new score before giving up
 STALL_MINUTES="${STALL_MINUTES:-90}"
 # Mirrors os.tmpdir() + SANDBOX_ROOT in run.ts.
 SANDBOX_ROOT="${TMPDIR:-${TMP:-${TEMP:-/tmp}}}/react-profession-bench"
@@ -57,6 +73,25 @@ last_activity() { # $1 = output stamp, $2 = pass-start stamp, $3 = scores file
           find "$d" -path "$d/node_modules" -prune -o -type f -printf '%T@\n' 2>/dev/null
         done
   } | cut -d. -f1 | sort -n | tail -1
+}
+
+# Kill anything still holding one of THIS model's sandbox directories. Only safe
+# between passes: during a pass the CLI itself runs with cwd inside a sandbox.
+reap_sandbox_procs() {
+  local pid cwd killed=0
+  for pid in /proc/[0-9]*; do
+    pid=${pid#/proc/}
+    [ "$pid" = "$$" ] && continue
+    cwd=$(readlink "/proc/$pid/cwd" 2>/dev/null) || continue
+    case "$cwd" in
+      "$SANDBOX_ROOT"/*_"$MODEL"|"$SANDBOX_ROOT"/*_"$MODEL"/*)
+        kill -TERM "$pid" 2>/dev/null && killed=$((killed + 1)) ;;
+    esac
+  done
+  if [ "$killed" -gt 0 ]; then
+    sleep 2
+    echo "[driver $(date +%H:%M:%S)] reaped ${killed} process(es) still holding a ${MODEL} sandbox"
+  fi
 }
 
 # One run.ts pass under the watchdog. Returns run.ts's exit status, or 124 if
@@ -94,13 +129,31 @@ run_pass() { # $1 = scores file
 
 for FILE in "${FILES[@]}"; do
   echo "=== sample -> $FILE (target ${TOTAL_SPECS}/${TOTAL_SPECS}) ==="
-  for pass in $(seq 1 "$MAX_PASSES"); do
-    run_pass "$FILE"
+  pass=0; stalls=0; idle=0; prev=$(scored "$FILE")
+  while :; do
+    run_pass "$FILE"; rc=$?
+    reap_sandbox_procs
     n=$(scored "$FILE")
-    echo "[driver $(date +%H:%M:%S)] $FILE: ${n}/${TOTAL_SPECS} after pass ${pass}"
+    if [ "$rc" = 124 ]; then
+      stalls=$((stalls + 1))
+      label="stall-kill ${stalls}/${MAX_STALL_KILLS}"
+    else
+      pass=$((pass + 1))
+      label="pass ${pass}/${MAX_PASSES}"
+    fi
+    if [ "$n" -gt "$prev" ]; then idle=0; else idle=$((idle + 1)); fi
+    prev=$n
+    echo "[driver $(date +%H:%M:%S)] $FILE: ${n}/${TOTAL_SPECS} after ${label}"
     [ "$n" = "$TOTAL_SPECS" ] && break
-    [ "$pass" = "$MAX_PASSES" ] && { echo "[driver] giving up on $FILE at ${n}/${TOTAL_SPECS} after ${MAX_PASSES} passes"; break; }
-    echo "[driver] re-resuming $FILE (pass $((pass + 1))) in 20s..."
+    if [ "$idle" -ge "$MAX_IDLE_ROUNDS" ]; then
+      echo "[driver] giving up on $FILE at ${n}/${TOTAL_SPECS} — no new score in ${MAX_IDLE_ROUNDS} rounds"; break
+    fi
+    if [ "$rc" = 124 ]; then
+      [ "$stalls" -ge "$MAX_STALL_KILLS" ] && { echo "[driver] giving up on $FILE at ${n}/${TOTAL_SPECS} after ${MAX_STALL_KILLS} stall kills"; break; }
+    else
+      [ "$pass" -ge "$MAX_PASSES" ] && { echo "[driver] giving up on $FILE at ${n}/${TOTAL_SPECS} after ${MAX_PASSES} passes"; break; }
+    fi
+    echo "[driver] re-resuming $FILE in 20s..."
     sleep 20
   done
 done
