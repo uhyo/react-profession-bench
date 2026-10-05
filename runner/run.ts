@@ -418,7 +418,14 @@ interface FailureInfo {
 
 // Retryable-after-wait: the subscription/API usage window is exhausted but will
 // refill. Anthropic resets the 5-hour window on a rolling basis.
-const RATE_LIMIT_MARKERS = /usage limit reached|rate.?limit|too many requests|\b429\b|\b529\b|overloaded|limit will reset|please wait and retry/i;
+// "hit your usage limit" is codex's own wording (observed 2026-10-05: "ERROR:
+// You've hit your usage limit. Upgrade to Pro ... or try again at 8:47 PM").
+// Without it such a failure fell through to "other" and was only identified by
+// the follow-up account probe — correct in the end, but it spent a probe and
+// logged the wrong kind. The bare clock time is deliberately not parsed as a
+// reset moment: it carries no date, and waitForReset(null) polls the account and
+// wakes the moment the window is actually back, which beats guessing a day.
+const RATE_LIMIT_MARKERS = /usage limit reached|hit your usage limit|rate.?limit|too many requests|\b429\b|\b529\b|overloaded|limit will reset|please wait and retry/i;
 // Not worth waiting on — these need human action, so retrying after a sleep
 // would just burn another window.
 const FATAL_MARKERS = /credit balance (?:is )?too low|invalid api key|please run \/login|oauth token (?:expired|revoked)|not logged in|authentication failed/i;
@@ -448,14 +455,45 @@ export function parseResetTime(raw: string): Date | null {
   return null;
 }
 
+// Every CLI here echoes the prompt we fed it on stdin back onto its own output
+// (codex prints "user" followed by the whole thing before it does any work).
+// That prompt embeds the spec and its data model, so scanning the raw output for
+// failure markers can match words the *spec* chose rather than anything the CLI
+// said: on 2026-10-05, specs/011-tooltip-popover/data-model.ts line "User has
+// not logged in for more than 30 days." tripped the "not logged in" fatal
+// marker, and five gpt-6-astra-max passes aborted as auth failures while the
+// real message — printed below the echo — was an ordinary usage limit with a
+// reset time. Drop every line we sent ourselves before classifying, matching on
+// trimmed lines so an echo that re-indents still goes.
+function stripEcho(raw: string, prompt?: string): string {
+  if (!prompt) return raw;
+  const sent = new Set(
+    prompt.split("\n").map((l) => l.trim()).filter((l) => l.length > 0),
+  );
+  return raw
+    .split("\n")
+    .filter((l) => !sent.has(l.trim()))
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
 // Inspect a caught error (ideally an ExecError carrying the child's stdout) and
 // decide whether it is a transient usage limit, a fatal config problem, or an
-// ordinary failure.
-export function classifyFailure(err: unknown): FailureInfo {
+// ordinary failure. Pass the prompt that was sent so the CLI's echo of it can be
+// discarded first (see stripEcho) — without it, the spec text is classified
+// alongside the error.
+export function classifyFailure(err: unknown, prompt?: string): FailureInfo {
   const e = err as Partial<ExecError> | undefined;
   const stdout = e?.stdout ?? "";
   const stderr = e?.stderr ?? "";
-  const raw = [stdout, stderr, e?.message].filter(Boolean).join("\n");
+  // makeExecError appends a full copy of stderr to the message, gluing a
+  // "stderr: " prefix onto its first line. Classifying the message as-is would
+  // therefore re-introduce one un-strippable echoed line (the prefixed one), so
+  // keep only the part of the message that is not that copy — the argv, and the
+  // timeout / failed-to-start wording that is the sole content when a child
+  // dies without writing anything.
+  const message = (e?.message ?? "").split("\nstderr:")[0];
+  const raw = stripEcho([stdout, stderr, message].filter(Boolean).join("\n"), prompt);
   if (FATAL_MARKERS.test(raw)) return { kind: "fatal", resetAt: null };
   if (BUDGET_MARKERS.test(raw)) return { kind: "budget", resetAt: null };
   if (RATE_LIMIT_MARKERS.test(raw)) return { kind: "rate_limit", resetAt: parseResetTime(raw) };
@@ -465,6 +503,22 @@ export function classifyFailure(err: unknown): FailureInfo {
   // exact signature without swallowing timeouts.
   const ambiguous = typeof e?.code === "number" && stdout.trim() === "" && stderr.trim() === "";
   return { kind: "other", resetAt: null, ambiguous };
+}
+
+// What the failing child actually said, for the log. Slicing the error message
+// short does not show it: the message leads with the full argv (~150 chars for a
+// codex invocation) and the prompt echo follows, so the first 200 characters are
+// reliably content-free — the five aborted passes above logged only
+// "stderr: Reading prompt from stdin...", and the usage-limit message behind
+// them had to be dug out of the scores file afterwards. Report the tail of the
+// de-echoed output instead, which is where a CLI puts its error.
+export function describeFailure(err: unknown, prompt?: string, limit = 600): string {
+  const e = err as Partial<ExecError> | undefined;
+  const message = err instanceof Error ? err.message : String(err);
+  const head = message.split("\nstderr:")[0].slice(0, 200);
+  const said = stripEcho([e?.stdout ?? "", e?.stderr ?? ""].join("\n"), prompt).trim();
+  if (!said) return head;
+  return `${head}\n  ${said.length > limit ? `…${said.slice(-limit)}` : said}`;
 }
 
 // Directly test whether the account is currently usage-limited, by issuing a
@@ -478,8 +532,10 @@ export function classifyFailure(err: unknown): FailureInfo {
 // the trimmed stdout (empty string when a claude account is throttled — that CLI
 // exits 0 with no text under a usage limit; codex instead exits non-zero with a
 // 429 ERROR, so it throws and the catch handles it), or throws on a hard failure.
+const PROBE_PROMPT = "Reply with the single word: ok";
+
 async function cheapProbe(spec: ModelSpec): Promise<string> {
-  const prompt = "Reply with the single word: ok";
+  const prompt = PROBE_PROMPT;
   switch (spec.backend) {
     case "claude": {
       const { stdout } = await exec("claude", [
@@ -505,14 +561,24 @@ async function cheapProbe(spec: ModelSpec): Promise<string> {
   }
 }
 
-async function probeRateLimit(spec: ModelSpec): Promise<boolean> {
+// What the account itself says right now, which is the only trustworthy source
+// on this question — the failure text of a run can be contaminated by the echo
+// (stripEcho) or simply unhelpful. "limited" covers both a throttled answer and
+// a probe that failed for any non-credential reason, since waiting is the right
+// response to both.
+type AccountState = "healthy" | "limited" | "fatal";
+
+async function probeAccountState(spec: ModelSpec): Promise<AccountState> {
   try {
-    return (await cheapProbe(spec)).length === 0; // empty success == throttled (claude)
+    // Empty success == throttled (claude exits 0 with no text under a limit).
+    return (await cheapProbe(spec)).length === 0 ? "limited" : "healthy";
   } catch (e) {
-    // Probe failed too. If it's an auth/credit problem, waiting won't help, so
-    // report "not a limit" and let the caller record the original failure.
-    return classifyFailure(e).kind !== "fatal";
+    return classifyFailure(e, PROBE_PROMPT).kind === "fatal" ? "fatal" : "limited";
   }
+}
+
+async function probeRateLimit(spec: ModelSpec): Promise<boolean> {
+  return (await probeAccountState(spec)) === "limited";
 }
 
 // Inverse of probeRateLimit, used to wake early from a usage-limit wait: returns
@@ -522,11 +588,7 @@ async function probeRateLimit(spec: ModelSpec): Promise<boolean> {
 // sooner than the conservative 5h fallback, so polling this lets us resume the
 // moment it's actually back instead of sleeping out the whole cap.
 async function probeAccountHealthy(spec: ModelSpec): Promise<boolean> {
-  try {
-    return (await cheapProbe(spec)).length > 0;
-  } catch {
-    return false;
-  }
+  return (await probeAccountState(spec)) === "healthy";
 }
 
 // Anthropic resets the 5-hour usage window on a rolling basis. When the failure
@@ -718,8 +780,8 @@ async function runImplementation(specId: string, model: string, workDir: string)
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const failure = classifyFailure(e);
-    log(`  Implementation failed (${failure.kind}): ${msg.slice(0, 200)}`);
+    const failure = classifyFailure(e, prompt);
+    log(`  Implementation failed (${failure.kind}): ${describeFailure(e, prompt)}`);
     return { files: {}, compiles: false, error: msg, failure };
   }
 
@@ -882,8 +944,8 @@ async function runEvaluation(
     stdout = result.stdout;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const failure = classifyFailure(e);
-    log(`  Evaluation failed (${failure.kind}): ${msg.slice(0, 200)}`);
+    const failure = classifyFailure(e, prompt);
+    log(`  Evaluation failed (${failure.kind}): ${describeFailure(e, prompt)}`);
     return { result: null, error: msg, failure };
   }
 
@@ -1161,11 +1223,27 @@ async function main(): Promise<void> {
 
       if (result.evaluation) { upsert(summaryRow(result)); break; }
 
-      const kind = result.failure?.kind ?? "other";
+      let kind = result.failure?.kind ?? "other";
+
+      // A fatal verdict aborts a sweep that may be days old, so it gets one
+      // cheap confirmation against the account rather than being taken on the
+      // strength of the error text. The text alone has already been wrong once
+      // (2026-10-05, the spec-echo confusion described at stripEcho): run.ts
+      // quit five times in three seconds each, and the driver spent its whole
+      // pass budget on those restarts, retiring gpt-6-astra-max s3 at 10/13
+      // over an error that waiting would in fact have fixed. If the account
+      // answers, whatever matched did not come from our credentials.
+      let probed: AccountState | null = null;
       if (kind === "fatal") {
-        upsert(summaryRow(result));
-        console.error(`Fatal error on ${spec} × ${model} (auth/credit) — cannot be fixed by waiting. Aborting.`);
-        process.exit(1);
+        log(`  ${spec}: error text looks fatal (auth/credit) — confirming against the account...`);
+        probed = await probeAccountState(resolveModel(model));
+        log(`  Probe: account is ${probed}`);
+        if (probed === "fatal") {
+          upsert(summaryRow(result));
+          console.error(`Fatal error on ${spec} × ${model} (auth/credit), confirmed by probe — cannot be fixed by waiting. Aborting.`);
+          process.exit(1);
+        }
+        kind = probed === "limited" ? "rate_limit" : "other";
       }
 
       // Budget cap exceeded mid-run: deterministic at this budget+effort, so
@@ -1188,7 +1266,7 @@ async function main(): Promise<void> {
       // signature — otherwise a limit-with-output is mistaken for transient and
       // the run burns retries/passes fast-failing instead of waiting it out.
       let isLimit = kind === "rate_limit";
-      if (config.retryOnLimit && !isLimit) {
+      if (config.retryOnLimit && !isLimit && probed === null) {
         log(`  ${spec}: non-limit failure — probing account for a usage limit...`);
         isLimit = await probeRateLimit(resolveModel(model));
         log(`  Probe: ${isLimit ? "usage limit IS active — will wait" : "not limited — treating as transient"}`);
