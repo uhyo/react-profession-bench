@@ -104,6 +104,18 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   // 5.6 tiers: one version-pinned key per effort level.
   "gpt-6-astra-high":   { backend: "codex", modelArg: "gpt-6-astra",  effort: "high" },
   "gpt-6-astra-max":    { backend: "codex", modelArg: "gpt-6-astra",  effort: "max" },
+  // GPT-6 Luna and GPT-6.1 Sol. Note the version numbers genuinely differ —
+  // Luna is a 6, Sol a 6.1 — so these are not two tiers of one release the way
+  // the 5.6 trio was. Both need codex CLI >= 0.160.0: on 0.153.4 (Sep 5) the
+  // slugs are unknown and the server rejects them exactly as it rejects a
+  // typo, so verify any new slug against a deliberately bogus control before
+  // trusting a sweep (a fallback to some default model would be invisible in
+  // the scores). These are the first codex entries measured on a CLI other
+  // than 0.153.4 — see the 第19回 report.
+  "gpt-6-luna-high":    { backend: "codex", modelArg: "gpt-6-luna",   effort: "high" },
+  "gpt-6-luna-max":     { backend: "codex", modelArg: "gpt-6-luna",   effort: "max" },
+  "gpt-6.1-sol-high":   { backend: "codex", modelArg: "gpt-6.1-sol",  effort: "high" },
+  "gpt-6.1-sol-max":    { backend: "codex", modelArg: "gpt-6.1-sol",  effort: "max" },
 };
 
 const DEFAULT_MODELS = ["sonnet", "opus", "haiku"];
