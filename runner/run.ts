@@ -692,6 +692,47 @@ function startKeepAwake(): () => void {
 }
 
 // One row of the scores file (mirrors the `summary` shape written below).
+// The CLI doing the work has been a silent variable in every score this
+// benchmark has recorded. The judge *model* has been pinned to sonnet-4.6 since
+// 第1回, but nothing pinned — or even wrote down — the CLI versions, on either
+// side. For codex that turned out to matter: a new OpenAI model requires a new
+// CLI, so version and model generation are perfectly correlated (0.144.4
+// measured the GPT-5.6 tiers, 0.153.4 Astra, 0.160.0 Sol/Luna, each sweep
+// starting minutes after its CLI was installed), which leaves a
+// generation-over-generation delta unattributable. See
+// scores/REPORT_2026-10-09_gpt6-sol-luna.md §8. The claude CLI is no better
+// pinned — it only escapes that correlation, because a new Claude model runs on
+// whatever CLI is already installed, and the same unpinned claude CLI also runs
+// the pinned judge. Recording both per row cannot repair past data; it makes the
+// variable visible from here on.
+const CLI_VERSIONS = new Map<string, string>();
+
+async function readCliVersion(backend: string): Promise<string> {
+  const cached = CLI_VERSIONS.get(backend);
+  if (cached) return cached;
+  let version = "unknown";
+  try {
+    const { stdout } = await exec(backend, ["--version"], { timeout: 20_000 });
+    // Each CLI formats this differently ("2.1.294 (Claude Code)", "codex-cli
+    // 0.160.0", "GitHub Copilot CLI 1.0.12."), so take the first version-looking
+    // token rather than trying to parse three shapes.
+    version = stdout.match(/\d+\.\d+(?:\.\d+)?/)?.[0] ?? "unknown";
+  } catch {
+    // A CLI that cannot report its version must never fail a run — the point of
+    // this field is provenance, not a precondition.
+  }
+  const label = `${backend}/${version}`;
+  CLI_VERSIONS.set(backend, label);
+  return label;
+}
+
+function cliVersionOf(backend: string): string {
+  return CLI_VERSIONS.get(backend) ?? `${backend}/unrecorded`;
+}
+
+// Set once in main, where the evaluator model is known.
+let evalCliLabel = "unrecorded";
+
 interface SummaryRow {
   spec: string;
   model: string;
@@ -700,6 +741,10 @@ interface SummaryRow {
   weighted_score: number | null;
   categories: Record<string, number> | null;
   error: string | null;
+  // Provenance: which CLI produced the implementation, and which ran the judge.
+  // Absent on every row written before 2026-10-09.
+  impl_cli: string;
+  eval_cli: string;
 }
 
 function summaryRow(r: RunResult): SummaryRow {
@@ -715,6 +760,8 @@ function summaryRow(r: RunResult): SummaryRow {
         )
       : null,
     error: r.implementationError ?? r.evaluationError ?? null,
+    impl_cli: cliVersionOf(resolveModel(r.model).backend),
+    eval_cli: evalCliLabel,
   };
 }
 
@@ -1064,6 +1111,17 @@ Examples:
   node runner/run.ts --model gpt-4.1 --model sonnet --model gemini-3-pro-preview
 `);
         process.exit(0);
+      // A benchmark driver must not silently ignore what it was asked to do.
+      // Unknown arguments used to fall through this switch unnoticed, so a
+      // mistyped flag changed the experiment instead of failing it: on
+      // 2026-10-09 `--specs 001-event-registration-form` (the real flag is the
+      // repeatable `--spec`) was dropped, `specs` fell back to all 13, and a
+      // one-spec harness check silently became a full sweep. There are no
+      // positional arguments, so anything unrecognised is a mistake.
+      default:
+        console.error(`Unknown argument: ${args[i]}`);
+        console.error(`Run with --help for the available options.`);
+        process.exit(1);
     }
   }
 
@@ -1206,6 +1264,14 @@ async function main(): Promise<void> {
     if (idx >= 0) summary[idx] = row; else summary.push(row);
     persist();
   };
+
+  // Read every CLI version up front, so each row records the version that was
+  // actually in use when the run started and a mid-run `codex update` cannot
+  // silently relabel earlier rows.
+  const implBackends = [...new Set(config.models.map((m) => resolveModel(m).backend))];
+  for (const b of implBackends) log(`  Implementation CLI: ${await readCliVersion(b)}`);
+  evalCliLabel = await readCliVersion(resolveModel(config.evalModel).backend);
+  log(`  Evaluation CLI: ${evalCliLabel}`);
 
   const results: RunResult[] = []; // detailed results produced this session
 
