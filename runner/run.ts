@@ -69,12 +69,16 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "fable-5":    { backend: "claude", modelArg: "claude-fable-5", effort: "high" },
   "fable-5.1":  { backend: "claude", modelArg: "claude-fable-5-1", effort: "high" },
   "haiku-4.5":  { backend: "claude", modelArg: "claude-haiku-4-5-20251001", effort: "high" },
+  // Haiku 5.5: first Haiku with native effort tiers (verified 2026-10-09:
+  // thinking tokens 178/244/728 at low/high/max; bogus-slug control rejected).
+  "haiku-5.5":  { backend: "claude", modelArg: "claude-haiku-5-5", effort: "high" },
   // Claude CLI models (non-high effort variants)
   "opus-4.7-max": { backend: "claude", modelArg: "claude-opus-4-7", effort: "max" },
   "opus-4.8-max": { backend: "claude", modelArg: "claude-opus-4-8", effort: "max" },
   "opus-5-max":   { backend: "claude", modelArg: "claude-opus-5", effort: "max" },
   "opus-5.5-max": { backend: "claude", modelArg: "claude-opus-5-5", effort: "max" },
   "sonnet-5.5-max": { backend: "claude", modelArg: "claude-sonnet-5-5", effort: "max" },
+  "haiku-5.5-max": { backend: "claude", modelArg: "claude-haiku-5-5", effort: "max" },
   "fable-5-low":  { backend: "claude", modelArg: "claude-fable-5", effort: "low" },
   "fable-5-max":  { backend: "claude", modelArg: "claude-fable-5", effort: "max" },
   "fable-5.1-max": { backend: "claude", modelArg: "claude-fable-5-1", effort: "max" },
