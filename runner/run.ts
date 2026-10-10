@@ -1263,6 +1263,18 @@ async function main(): Promise<void> {
     summary.some((r) => r.spec === spec && r.model === model && r.weighted_score != null);
 
   const persist = () => writeFileSync(scoresPath, JSON.stringify(summary, null, 2));
+  // The judge's full output (justifications, anti-patterns, strengths) is
+  // archived next to the source as soon as a run is scored, like the score row
+  // itself. It used to be written only when run.ts exited normally, so every
+  // stall-killed pass silently dropped the rationales for all the specs it had
+  // scored — ~100 of 1030 n=3 runs by 2026-10-10 (GPT-6 Astra max kept 8/39).
+  const archiveEvaluation = (r: RunResult) => {
+    if (!r.evaluation || !existsSync(r.archiveDir)) return;
+    writeFileSync(
+      join(r.archiveDir, "evaluation-result.json"),
+      JSON.stringify(r.evaluation, null, 2),
+    );
+  };
   const upsert = (row: SummaryRow) => {
     const idx = summary.findIndex((r) => r.spec === row.spec && r.model === row.model);
     if (idx >= 0) summary[idx] = row; else summary.push(row);
@@ -1303,7 +1315,11 @@ async function main(): Promise<void> {
       results.push(result);
       console.log();
 
-      if (result.evaluation) { upsert(summaryRow(result)); break; }
+      if (result.evaluation) {
+        upsert(summaryRow(result));
+        archiveEvaluation(result);
+        break;
+      }
 
       let kind = result.failure?.kind ?? "other";
 
@@ -1389,16 +1405,6 @@ async function main(): Promise<void> {
   writeFileSync(summaryPath, JSON.stringify(summary, null, 2));
   log(`Summary written to ${summaryPath}`);
   log(`Scores written to ${scoresPath}`);
-
-  // --- Write per-run detailed results alongside the archived source ---
-  for (const r of results) {
-    if (r.evaluation && existsSync(r.archiveDir)) {
-      writeFileSync(
-        join(r.archiveDir, "evaluation-result.json"),
-        JSON.stringify(r.evaluation, null, 2),
-      );
-    }
-  }
 
   // --- Print scorecard ---
   console.log("\n========================================");
