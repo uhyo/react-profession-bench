@@ -1,0 +1,236 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:10:32.967Z",
+    "compiles": true,
+    "weighted_score": 96,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:14:39.483Z",
+    "compiles": true,
+    "weighted_score": 87,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "003-quiz-builder",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:18:17.549Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "004-user-profile-browser",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:22:53.681Z",
+    "compiles": true,
+    "weighted_score": 76,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 2,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:26:28.203Z",
+    "compiles": true,
+    "weighted_score": 77,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:29:55.772Z",
+    "compiles": true,
+    "weighted_score": 72,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:33:11.247Z",
+    "compiles": true,
+    "weighted_score": 81,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:42:24.389Z",
+    "compiles": false,
+    "weighted_score": 78,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:46:04.410Z",
+    "compiles": true,
+    "weighted_score": 89,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:51:50.391Z",
+    "compiles": true,
+    "weighted_score": 80,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:55:57.991Z",
+    "compiles": true,
+    "weighted_score": 81,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 3
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T04:59:58.194Z",
+    "compiles": true,
+    "weighted_score": 94,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "haiku-5.5",
+    "timestamp": "2026-10-09T05:03:14.691Z",
+    "compiles": true,
+    "weighted_score": 92,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  }
+]

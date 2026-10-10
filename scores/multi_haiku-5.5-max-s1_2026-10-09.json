@@ -1,0 +1,236 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T06:15:34.794Z",
+    "compiles": true,
+    "weighted_score": 98,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T06:34:07.293Z",
+    "compiles": true,
+    "weighted_score": 89,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "003-quiz-builder",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T06:46:28.488Z",
+    "compiles": true,
+    "weighted_score": 84,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "004-user-profile-browser",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T07:11:20.146Z",
+    "compiles": true,
+    "weighted_score": 73,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 2,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 2,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T07:28:49.487Z",
+    "compiles": true,
+    "weighted_score": 83,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T07:43:27.351Z",
+    "compiles": true,
+    "weighted_score": 84,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T08:04:17.914Z",
+    "compiles": true,
+    "weighted_score": 79,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T08:28:48.700Z",
+    "compiles": false,
+    "weighted_score": 79,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 5,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T08:46:02.570Z",
+    "compiles": true,
+    "weighted_score": 84,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T09:06:26.914Z",
+    "compiles": true,
+    "weighted_score": 80,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T09:20:16.298Z",
+    "compiles": true,
+    "weighted_score": 90,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T13:00:11.763Z",
+    "compiles": true,
+    "weighted_score": 100,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "haiku-5.5-max",
+    "timestamp": "2026-10-09T13:18:54.707Z",
+    "compiles": true,
+    "weighted_score": 92,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.294",
+    "eval_cli": "claude/2.1.294"
+  }
+]
