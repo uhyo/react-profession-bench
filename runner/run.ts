@@ -120,6 +120,11 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "gpt-6-luna-max":     { backend: "codex", modelArg: "gpt-6-luna",   effort: "max" },
   "gpt-6.1-sol-high":   { backend: "codex", modelArg: "gpt-6.1-sol",  effort: "high" },
   "gpt-6.1-sol-max":    { backend: "codex", modelArg: "gpt-6.1-sol",  effort: "max" },
+  // GPT-6.1 Terra (verified 2026-11-07 on codex 0.167.0: reasoning tokens
+  // 0/51/561 at low/high/max on one prompt; bogus-slug control rejected).
+  // Measured on 0.167.0, not Sol's 0.160.0, so same-CLI claims need a control.
+  "gpt-6.1-terra-high": { backend: "codex", modelArg: "gpt-6.1-terra", effort: "high" },
+  "gpt-6.1-terra-max":  { backend: "codex", modelArg: "gpt-6.1-terra", effort: "max" },
 };
 
 const DEFAULT_MODELS = ["sonnet", "opus", "haiku"];
