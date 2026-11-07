@@ -1,0 +1,236 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T05:12:01.913Z",
+    "compiles": true,
+    "weighted_score": 87,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T05:21:18.573Z",
+    "compiles": true,
+    "weighted_score": 86,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "003-quiz-builder",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T05:29:21.379Z",
+    "compiles": true,
+    "weighted_score": 79,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "004-user-profile-browser",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T05:40:17.227Z",
+    "compiles": true,
+    "weighted_score": 74,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T05:52:33.337Z",
+    "compiles": true,
+    "weighted_score": 66,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 3,
+      "component_design": 3,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T06:01:00.799Z",
+    "compiles": true,
+    "weighted_score": 71,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 2,
+      "typescript_quality": 4,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T06:11:15.161Z",
+    "compiles": true,
+    "weighted_score": 86,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T06:19:20.262Z",
+    "compiles": false,
+    "weighted_score": 71,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 3,
+      "component_design": 2,
+      "typescript_quality": 4,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T06:28:08.800Z",
+    "compiles": true,
+    "weighted_score": 82,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T06:42:37.604Z",
+    "compiles": true,
+    "weighted_score": 77,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 2,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T06:52:32.089Z",
+    "compiles": true,
+    "weighted_score": 84,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T07:07:37.120Z",
+    "compiles": true,
+    "weighted_score": 92,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "gpt-6.1-sol-high",
+    "timestamp": "2026-11-07T07:18:55.484Z",
+    "compiles": true,
+    "weighted_score": 84,
+    "categories": {
+      "state_architecture": 4,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "codex/0.167.0",
+    "eval_cli": "claude/2.1.319"
+  }
+]
