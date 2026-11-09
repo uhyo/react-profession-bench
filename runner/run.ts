@@ -68,6 +68,10 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "opus-5.5":   { backend: "claude", modelArg: "claude-opus-5-5", effort: "high" },
   "fable-5":    { backend: "claude", modelArg: "claude-fable-5", effort: "high" },
   "fable-5.1":  { backend: "claude", modelArg: "claude-fable-5-1", effort: "high" },
+  // Fable 5.2 (verified 2026-11-10 on claude 2.1.321: modelUsage reports
+  // claude-fable-5-2; bogus-slug control rejected). High only — max would
+  // exhaust the Claude usage windows.
+  "fable-5.2":  { backend: "claude", modelArg: "claude-fable-5-2", effort: "high" },
   "haiku-4.5":  { backend: "claude", modelArg: "claude-haiku-4-5-20251001", effort: "high" },
   // Haiku 5.5: first Haiku with native effort tiers (verified 2026-10-09:
   // thinking tokens 178/244/728 at low/high/max; bogus-slug control rejected).
