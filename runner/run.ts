@@ -86,6 +86,9 @@ const MODEL_REGISTRY: Record<string, ModelSpec> = {
   "fable-5-low":  { backend: "claude", modelArg: "claude-fable-5", effort: "low" },
   "fable-5-max":  { backend: "claude", modelArg: "claude-fable-5", effort: "max" },
   "fable-5.1-max": { backend: "claude", modelArg: "claude-fable-5-1", effort: "max" },
+  // Fable 5.2 max: s1 only, as an unofficial reference value (a full n=3
+  // max sweep would exhaust the Claude usage windows).
+  "fable-5.2-max": { backend: "claude", modelArg: "claude-fable-5-2", effort: "max" },
   // Copilot CLI models (OpenAI)
   "gpt-4.1":           { backend: "copilot", modelArg: "gpt-4.1" },
   "gpt-5-mini":        { backend: "copilot", modelArg: "gpt-5-mini" },
