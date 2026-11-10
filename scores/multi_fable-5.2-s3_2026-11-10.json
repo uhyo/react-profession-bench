@@ -1,0 +1,236 @@
+[
+  {
+    "spec": "001-event-registration-form",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T13:52:17.022Z",
+    "compiles": true,
+    "weighted_score": 94,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "002-data-dashboard",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T14:03:34.976Z",
+    "compiles": true,
+    "weighted_score": 89,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "003-quiz-builder",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T14:15:13.391Z",
+    "compiles": true,
+    "weighted_score": 96,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "004-user-profile-browser",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T14:27:03.435Z",
+    "compiles": true,
+    "weighted_score": 100,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "005-system-status-dashboard",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T14:39:15.919Z",
+    "compiles": true,
+    "weighted_score": 83,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "006-notification-activity-feed",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T14:48:26.206Z",
+    "compiles": true,
+    "weighted_score": 88,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 4
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "007-sns-feed",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T14:56:13.239Z",
+    "compiles": true,
+    "weighted_score": 100,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "008-form-actions",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T18:40:55.213Z",
+    "compiles": false,
+    "weighted_score": 98,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "009-reusable-components",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T18:54:23.612Z",
+    "compiles": true,
+    "weighted_score": 89,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 4,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "010-tree-file-explorer",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T19:09:21.670Z",
+    "compiles": true,
+    "weighted_score": 86,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 3,
+      "typescript_quality": 5,
+      "performance_awareness": 3,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "011-tooltip-popover",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T19:24:06.612Z",
+    "compiles": true,
+    "weighted_score": 94,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 4,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "012-multi-tab-editor",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T19:39:07.920Z",
+    "compiles": true,
+    "weighted_score": 96,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 4,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  },
+  {
+    "spec": "013-settings-undo-redo",
+    "model": "fable-5.2",
+    "timestamp": "2026-11-10T19:48:50.219Z",
+    "compiles": true,
+    "weighted_score": 100,
+    "categories": {
+      "state_architecture": 5,
+      "effect_hygiene": 5,
+      "component_design": 5,
+      "typescript_quality": 5,
+      "performance_awareness": 5,
+      "accessibility_semantics": 5
+    },
+    "error": null,
+    "impl_cli": "claude/2.1.322",
+    "eval_cli": "claude/2.1.322"
+  }
+]
